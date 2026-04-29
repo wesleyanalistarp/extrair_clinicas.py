@@ -1,0 +1,6 @@
+*.db
+*.csv
+dados_receita/
+__pycache__/
+*.pyc
+.env

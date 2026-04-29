@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Leads Pro</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Fonte -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            background: #f4f6f9;
+
+            /* 🔥 TRANSIÇÃO GLOBAL */
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            background: #111827;
+            color: white;
+            padding: 20px;
+        }
+
+        .sidebar a {
+            color: #cbd5e1;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+
+        .sidebar a:hover {
+            background: #1f2937;
+            color: white;
+        }
+
+        /* CONTEÚDO */
+        .content {
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .no-sidebar {
+            margin-left: 0 !important;
+        }
+
+        /* LOADING GLOBAL */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 9999;
+            color: white;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            margin-top: 15px;
+            font-size: 18px;
+        }
+
+        /* ===== RESPONSIVO ===== */
+
+        /* botão hamburger */
+        .menu-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 8px;
+            z-index: 1001;
+            display: none;
+        }
+
+        /* overlay escuro */
+        .overlay-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            z-index: 998;
+        }
+
+        /* MOBILE */
+        @media (max-width: 768px) {
+
+            .menu-btn {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 999;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .overlay-bg.active {
+                display: block;
+            }
+
+            .content {
+                margin-left: 0 !important;
+            }
+        }
+
+        /* ===== UI SAAS ===== */
+
+        :root {
+            --primary: #2563eb;
+            --bg: #f4f6f9;
+            --card: #ffffff;
+            --text: #1f2937;
+        }
+
+        /* HEADER TOP */
+        .topbar {
+            position: fixed;
+            top: 0;
+            left: 260px;
+            right: 0;
+            height: 60px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 900;
+        }
+
+        /* conteúdo agora respeita header */
+        .content {
+            margin-left: 260px;
+            padding: 80px 30px 30px;
+        }
+
+        /* SIDEBAR MELHORADA */
+        .sidebar {
+            background: linear-gradient(180deg, #111827, #0f172a);
+        }
+
+        .sidebar h4 {
+            font-weight: 600;
+        }
+
+        .sidebar a {
+            transition: all 0.2s ease;
+        }
+
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(5px);
+        }
+
+        /* CARDS */
+        .card {
+            border-radius: 12px;
+            border: none;
+            background: var(--card);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+        }
+
+        /* BOTÕES */
+        .btn-primary {
+            background: var(--primary);
+            border: none;
+            border-radius: 8px;
+        }
+
+        .btn-primary:hover {
+            background: #1e40af;
+        }
+
+        /* MOBILE AJUSTE */
+        @media (max-width: 768px) {
+
+            .topbar {
+                left: 0;
+            }
+
+            .content {
+                margin-left: 0 !important;
+                padding: 80px 15px;
+            }
+        }
+
+        .card {
+            border: none;
+            border-radius: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+    <button class="menu-btn" onclick="toggleMenu()">☰</button>
+    <div class="overlay-bg" onclick="toggleMenu()"></div>
+
+    {% if current_user.is_authenticated and request.path not in ['/login', '/register'] %}
+
+    <!-- TOPO -->
+    <div class="topbar">
+        <div><strong>Dashboard</strong></div>
+        <div>
+            👋 {{ current_user.email }}
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar d-flex flex-column" id="sidebar">
+
+        <h4>🚀 Leads Pro</h4>
+        <hr>
+
+        <a href="/">🔍 Buscar Leads</a>
+        <a href="/dashboard">📊 Dashboard</a>
+
+        <div class="mt-auto">
+            <hr>
+            <a href="/logout" class="btn btn-danger w-100">🚪 Sair</a>
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    <!-- CONTEÚDO -->
+    <div
+        class="content {% if not current_user.is_authenticated or request.path in ['/login', '/register'] %}no-sidebar{% endif %}">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- LOADING GLOBAL -->
+    <div id="loadingOverlay">
+        <div class="loader"></div>
+        <div class="loading-text" id="loadingText">Carregando...</div>
+    </div>
+
+    <script>
+        window.addEventListener("load", function () {
+            document.body.classList.add("loaded");
+        });
+
+        /* =========================
+           CONTROLE INTELIGENTE
+        ========================= */
+
+        // FUNÇÃO GLOBAL
+        function showLoading(texto, leve = false) {
+            const overlay = document.getElementById("loadingOverlay");
+            const loadingText = document.getElementById("loadingText");
+
+            if (overlay && loadingText) {
+                overlay.style.display = "flex";
+                overlay.style.background = leve
+                    ? "rgba(15, 23, 42, 0.3)"
+                    : "rgba(15, 23, 42, 0.7)";
+                loadingText.innerText = texto;
+            }
+        }
+
+        /* 👉 LOGIN */
+        const formLogin = document.querySelector("form[action='/login']");
+        if (formLogin) {
+            formLogin.addEventListener("submit", function () {
+                showLoading("Entrando no sistema...");
+            });
+        }
+
+        /* 👉 BUSCA */
+        const formBusca = document.getElementById("formBusca");
+        if (formBusca) {
+            formBusca.addEventListener("submit", function () {
+
+                showLoading("🔍 Buscando...", true);
+
+                const btn = formBusca.querySelector("button");
+                if (btn) btn.disabled = true;
+            });
+        }
+        /* ===== MENU MOBILE ===== */
+        function toggleMenu() {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.querySelector(".overlay-bg");
+
+            if (sidebar && overlay) {
+                sidebar.classList.toggle("active");
+                overlay.classList.toggle("active");
+            }
+        }
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card shadow-sm p-3" style="border-radius:16px;">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">📊 Resultados</h4>
+            <small class="text-muted">Lista de empresas encontradas</small>
+        </div>
+
+        <div>
+            <a href="/" class="btn btn-light me-2">← Voltar</a>
+            <a href="/download" class="btn btn-success">⬇ Exportar CSV</a>
+        </div>
+    </div>
+
+    <!-- TABELA -->
+    <div class="table-responsive">
+        <table class="table align-middle table-hover">
+
+            <thead class="table-dark">
+                <tr>
+                    <th>CNPJ</th>
+                    <th>Empresa</th>
+                    <th>Local</th>
+                    <th>Data</th>
+                    <th>Contato</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in dados %}
+                <tr>
+
+                    <!-- CNPJ -->
+                    <td class="fw-bold">{{ item.cnpj }}</td>
+
+                    <!-- EMPRESA -->
+                    <td>
+                        <div class="fw-semibold">{{ item.nome }}</div>
+                        <small class="text-muted">
+                            {% if item.cnae %}
+                            <small class="text-muted">
+                                🏷 CNAE: {{ item.cnae }}
+                            </small>
+                            {% endif %}
+                        </small>
+                    </td>
+
+                    <!-- LOCAL -->
+                    <td>
+                        <span class="badge bg-light text-dark">
+                            {{ item.uf }} - {{ item.municipio }}
+                        </span>
+                    </td>
+
+                    <!-- DATA -->
+                    <td>{{ item.data | data_br }}</td>
+
+                    <!-- CONTATO -->
+                    <td>
+                        <div>{{ item.telefone if item.telefone else '-' }}</div>
+                        <small class="text-muted">
+                            {{ item.email if item.email else '' }}
+                        </small>
+                    </td>
+
+                    <!-- AÇÃO -->
+                    <td>
+                        {% if item.telefone %}
+                        <a target="_blank"
+                            href="https://wa.me/55{{ item.telefone | replace('(','') | replace(')','') | replace(' ','') }}"
+                            class="btn btn-success btn-sm">
+                            WhatsApp
+                        </a>
+                        {% else %}
+                        <span class="text-muted">Sem contato</span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}
