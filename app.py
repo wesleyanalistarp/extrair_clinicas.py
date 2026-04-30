@@ -385,6 +385,7 @@ from flask import flash, redirect, url_for
 @app.route("/register", methods=["GET", "POST"])
 def register():
     sucesso = False
+    erro = None
 
     if request.method == "POST":
         email = request.form.get("email")
@@ -396,19 +397,19 @@ def register():
         try:
             cursor.execute(
                 "INSERT INTO users (email, password) VALUES (?, ?)",
-                (email, senha)
+                (email, generate_password_hash(senha))
             )
             conn.commit()
 
-            sucesso = True  # 🔥 ATIVA O OVERLAY
+            sucesso = True  # 🔥 ativa overlay
 
-        except:
-            sucesso = False
+        except sqlite3.IntegrityError:
+            erro = "⚠️ Este email já está cadastrado. Tente fazer login."
 
         finally:
             conn.close()
 
-    return render_template("register.html", sucesso=sucesso)
+    return render_template("register.html", sucesso=sucesso, erro=erro)
 
 
 # 🚪 LOGOUT

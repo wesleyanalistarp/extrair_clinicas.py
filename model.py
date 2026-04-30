@@ -16,3 +16,7 @@ def criar_tabela():
 
     conn.commit()
     conn.close()
+
+if __name__ == "__main__":
+    criar_tabela()
+    print("✅ Banco de usuários criado!")

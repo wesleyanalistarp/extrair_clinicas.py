@@ -60,7 +60,12 @@
         min-height: 100vh;
     }
 </style>
-
+{% if erro %}
+<div class="alert alert-danger text-center">
+    {{ erro }} <br>
+    <a href="/login" class="fw-bold">Ir para login</a>
+</div>
+{% endif %}
 <div class="container d-flex align-items-center justify-content-center" style="min-height: 80vh;">
     <div class="card shadow-sm p-4" style="border-radius:16px; width:100%; max-width:400px;">
 
