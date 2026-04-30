@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Login - Leads Pro</title>
+    <title>CallVendas</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Bootstrap -->
@@ -20,8 +20,10 @@
         }
 
         .left-side {
-            background: linear-gradient(135deg, #2563eb, #1e40af);
-            color: white;
+            background: linear-gradient(135deg,#4f46e5,
+        #7c3aed,
+        #a78bfa);
+        color: white;
 
             transform: translateX(-30px);
             opacity: 0;
@@ -106,6 +108,10 @@
             border-radius: 16px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
             padding: 25px;
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.95);
+            max-width: 420px;
+            width: 100%;
         }
 
         /* BOTÃO VOLTAR */
@@ -121,6 +127,35 @@
         .btn-voltar-login:hover {
             color: #111827;
         }
+
+        .left-side img {
+            transition: transform 0.3s ease;
+        }
+
+        .left-side img:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 42px;
+            color: white;
+        }
+
+        .logo-text .call {
+            border-bottom: 4px solid white;
+            padding-bottom: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .logo-text {
+                font-size: 32px;
+            }
+
+            .logo-text .call {
+                border-bottom: 4px solid #a78bfa;
+            }
+        }
     </style>
 </head>
 
@@ -132,7 +167,9 @@
             <!-- ESQUERDA -->
             <div class="col-md-6 d-none d-md-flex flex-column justify-content-center align-items-center left-side">
                 <div class="text-center px-4">
-                    <h1 class="mb-3">🚀 Leads Pro</h1>
+                    <h1 class="mb-3 logo-text">
+                        <span class="call">Call</span>Vendas
+                    </h1>
                     <p>Gere leads qualificados para seu negócio em segundos.</p>
 
                     <small>
@@ -142,7 +179,8 @@
                     </small>
 
                     <div class="mt-4">
-                        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" style="max-width: 180px;">
+                        <img src="{{ url_for('static', filename='callvendas.png') }}"
+                            style="max-width: 180px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
                     </div>
                 </div>
             </div>
@@ -150,7 +188,7 @@
             <!-- DIREITA -->
             <div class="col-md-6 d-flex justify-content-center align-items-center position-relative">
 
-                <div class="card card-login w-100">
+                <div class="card card-login">
 
                     <div class="text-center mb-3">
                         <h4>🔐 Entrar</h4>

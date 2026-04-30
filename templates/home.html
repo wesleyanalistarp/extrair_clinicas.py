@@ -233,6 +233,27 @@
                 transform: translateY(0px);
             }
         }
+
+        @media (max-width: 768px) {
+            .logo-text {
+                font-size: 32px;
+            }
+
+            .logo-text .call {
+                border-bottom: 3px solid white;
+            }
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 42px;
+            color: white;
+        }
+
+        .logo-text .call {
+            border-bottom: 4px solid white;
+            padding-bottom: 2px;
+        }
     </style>
 </head>
 
@@ -245,7 +266,9 @@
 
                 <!-- TEXTO -->
                 <div class="col-lg-6 text-center text-lg-start mb-4 mb-lg-0">
-                    <h1 class="hero-title">CallVendas</h1>
+                    <h1 class="logo-text">
+                        <span class="call">Call</span>Vendas
+                    </h1>
 
                     <p class="hero-sub">
                         Gere leads qualificados com base oficial da Receita Federal.

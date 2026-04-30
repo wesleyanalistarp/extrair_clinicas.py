@@ -88,6 +88,7 @@ def buscar_empresas(cidade, uf, palavra, data_min):
         UF,
         MUNICIPIO,
         DATA_INICIO_ATIVIDADE,
+        DDD_1,
         TELEFONE_1,
         CORREIO_ELETRONICO,
         CNAE_FISCAL_PRINCIPAL
@@ -130,16 +131,27 @@ def buscar_empresas(cidade, uf, palavra, data_min):
 
     # 🔥 CONVERTE PARA DICIONÁRIO (ESSENCIAL)
     dados = []
+
     for row in rows:
+        ddd = row[5] or ""
+        tel = row[6] or ""
+
+        telefone = ""
+
+        if ddd and tel:
+            telefone = f"{ddd}{tel}"
+        elif tel:
+            telefone = tel
+
         dados.append({
             "cnpj": row[0],
             "nome": row[1],
             "uf": row[2],
             "municipio": row[3],
             "data": row[4],
-            "telefone": row[5],
-            "email": row[6],
-            "cnae": row[7]  # 🔥 AQUI ESTÁ O SEGREDO
+            "telefone": telefone,
+            "email": row[7],
+            "cnae": row[8]
         })
 
     return dados
