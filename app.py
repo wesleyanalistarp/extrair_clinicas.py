@@ -9,7 +9,7 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-
+from flask_sqlalchemy import SQLAlchemy
 import os
 from flask import Flask
 
@@ -27,6 +27,9 @@ if DATABASE_URL.startswith("postgres://"):
 
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+with app.app_context():
+    db.create_all()
 
 # 🔐 LOGIN MANAGER
 login_manager = LoginManager()
