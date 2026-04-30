@@ -14,8 +14,9 @@ app = Flask(__name__)
 app.secret_key = "segredo-super"  # troque em produção
 
 
-
-DB_PATH = os.getenv("DB_PATH", "empresas.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace("postgres://", "postgresql://", 1)
 
 # 🔐 LOGIN MANAGER
 login_manager = LoginManager()
