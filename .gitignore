@@ -1,6 +1,18 @@
+# Banco (não subir)
 *.db
-*.csv
+
+# Arquivos grandes / dados brutos
 dados_receita/
+
+# arquivos gerados
+resultado.csv
+
+# python
 __pycache__/
 *.pyc
+
+# env
 .env
+
+# uploads
+uploads/

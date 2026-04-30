@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import pandas as pd
 from flask import Flask, render_template, request, redirect, send_file
@@ -12,7 +13,9 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "segredo-super"  # troque em produção
 
-DB_PATH = "empresas.db"
+
+
+DB_PATH = os.getenv("DB_PATH", "empresas.db")
 
 # 🔐 LOGIN MANAGER
 login_manager = LoginManager()
