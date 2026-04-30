@@ -10,13 +10,23 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+import os
+from flask import Flask
+
 app = Flask(__name__)
-app.secret_key = "segredo-super"  # troque em produção
+app.secret_key = "segredo-super"
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-if app.config['SQLALCHEMY_DATABASE_URI'].startswith("postgres://"):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace("postgres://", "postgresql://", 1)
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL não definida no Render")
+
+# Correção padrão (caso venha como postgres://)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # 🔐 LOGIN MANAGER
 login_manager = LoginManager()
