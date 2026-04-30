@@ -5,7 +5,7 @@
 
 <!-- HEADER PREMIUM -->
 <div class="d-flex justify-content-between align-items-center mb-4 p-3"
-     style="background:#0f172a;color:white;border-radius:12px;">
+    style="background:#0f172a;color:white;border-radius:12px;">
 
     <div>
         <strong>📡 Base Receita Federal</strong><br>
@@ -57,9 +57,9 @@
 
             <div class="small-info">
                 {% if perc_empresas >= 0 %}
-                    <span class="badge bg-success">▲ +{{ perc_empresas }}%</span>
+                <span class="badge bg-success">▲ +{{ perc_empresas }}%</span>
                 {% else %}
-                    <span class="badge bg-danger">▼ {{ perc_empresas }}%</span>
+                <span class="badge bg-danger">▼ {{ perc_empresas }}%</span>
                 {% endif %}
                 <span>vs última base</span>
             </div>
@@ -82,9 +82,9 @@
 
             <div class="small-info">
                 {% if perc_tel >= 0 %}
-                    <span class="badge bg-success">▲ +{{ perc_tel }}%</span>
+                <span class="badge bg-success">▲ +{{ perc_tel }}%</span>
                 {% else %}
-                    <span class="badge bg-danger">▼ {{ perc_tel }}%</span>
+                <span class="badge bg-danger">▼ {{ perc_tel }}%</span>
                 {% endif %}
                 <span>vs última base</span>
             </div>
@@ -159,23 +159,51 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-const dadosGrafico = JSON.parse('{{ grafico | tojson | safe }}');
+    const dadosGrafico = JSON.parse('{{ grafico | tojson | safe }}');
 
-new Chart(document.getElementById("graficoCidades"),{
-    type:"line",
-    data:{
-        labels:dadosGrafico.map(i=>i[0]),
-        datasets:[{
-            data:dadosGrafico.map(i=>i[1]),
-            borderColor:"#3b82f6",
-            fill:true,
-            tension:0.4
-        }]
-    },
-    options:{
-        plugins:{legend:{display:false}}
+    new Chart(document.getElementById("graficoCidades"), {
+        type: "line",
+        data: {
+            labels: dadosGrafico.map(i => i[0]),
+            datasets: [{
+                data: dadosGrafico.map(i => i[1]),
+                borderColor: "#3b82f6",
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } }
+        }
+    });
+    function animarNumero(el, valorFinal) {
+        let atual = 0;
+        let incremento = Math.ceil(valorFinal / 50);
+
+        let intervalo = setInterval(() => {
+            atual += incremento;
+
+            if (atual >= valorFinal) {
+                atual = valorFinal;
+                clearInterval(intervalo);
+            }
+
+            el.innerText = atual.toLocaleString("pt-BR");
+        }, 20);
     }
-});
+
+    // pega todos os cards
+    document.querySelectorAll(".card-value").forEach(el => {
+
+        // pega número removendo pontos
+        let valor = el.innerText.replace(/\./g, "").trim();
+
+        if (!isNaN(valor)) {
+            el.innerText = "0";
+            animarNumero(el, parseInt(valor));
+        }
+
+    });
 </script>
 
 {% endblock %}

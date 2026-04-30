@@ -151,16 +151,6 @@
             }
         }
 
-        /* @media (max-width: 768px) {
-            .hero {
-                background: radial-gradient(circle at top left,
-                        rgba(167, 139, 250, 0.3),
-                        transparent 40%),
-                    linear-gradient(135deg,
-                        #4f46e5,
-                        #7c3aed);
-            }
-        } */
 
         /* BOTÃO VOLTAR MOBILE */
         .btn-back-mobile {
@@ -254,6 +244,229 @@
             border-bottom: 4px solid white;
             padding-bottom: 2px;
         }
+
+        .insight-box {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 20px;
+            width: 340px;
+            color: white;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .insight-header h2 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* gráfico */
+        .chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 100px;
+            margin: 15px 0;
+        }
+
+        .bar {
+            width: 18px;
+            height: 0;
+            background: linear-gradient(to top, #a78bfa, #ffffff);
+            border-radius: 6px;
+
+            animation: grow 1s ease forwards;
+        }
+
+        /* cada barra cresce diferente */
+        .bar:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .bar:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .bar:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .bar:nth-child(4) {
+            animation-delay: 0.4s;
+        }
+
+        .bar:nth-child(5) {
+            animation-delay: 0.5s;
+        }
+
+        .bar:nth-child(6) {
+            animation-delay: 0.6s;
+        }
+
+        @keyframes grow {
+            to {
+                height: var(--h);
+            }
+        }
+
+        /* leve flutuação */
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .insight-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .insight-mini {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px;
+            color: white;
+            font-size: 13px;
+
+            animation: float 5s ease-in-out infinite;
+        }
+
+        .insight-mini h3 {
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        /* animação levemente diferente */
+        .insight-mini:nth-child(1) {
+            animation-delay: 0.5s;
+        }
+
+        .insight-mini:nth-child(2) {
+            animation-delay: 1s;
+        }
+
+        .mobile-logo {
+            display: none;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .mobile-logo img {
+            width: 70px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-logo {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .hero-visual {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+
+            /* CARD GRANDE */
+            .insight-box {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            /* CONTAINER DOS MINI CARDS */
+            .insight-group {
+                width: 100%;
+                max-width: 300px;
+                display: flex;
+                gap: 10px;
+            }
+
+            /* MINI CARDS */
+            .insight-mini {
+                flex: 1;
+                text-align: center;
+                padding: 12px 8px;
+            }
+
+        }
+
+        .insight-box,
+        .insight-group {
+            margin: 0 auto;
+        }
+
+        .insight-mini {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* LOGO WRAPPER */
+        .logo-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        /* LOGO */
+        .logo-hero {
+            width: 90px;
+            /* desktop */
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        /* MOBILE AJUSTADO */
+        @media (max-width: 768px) {
+
+            .logo-wrapper {
+                align-items: center;
+                text-align: center;
+            }
+
+            .logo-hero {
+                width: 70px;
+                display: block;
+                margin: 0 auto 10px auto;
+            }
+
+            .insight-box {
+                margin-top: 30px;
+            }
+
+            .insight-group {
+                margin-top: 15px;
+            }
+        }
+
+        /* DESKTOP (refino) */
+        @media (min-width: 992px) {
+            .insight-box {
+                margin-top: 80px;
+            }
+
+            .insight-group {
+                margin-top: 20px;
+            }
+        }
     </style>
 </head>
 
@@ -263,12 +476,19 @@
     <section class="hero">
         <div class="container">
             <div class="row align-items-center">
+                <!-- <div class="mobile-logo">
+                    <img src="{{ url_for('static', filename='callvendas.png') }}">
+                </div> -->
 
                 <!-- TEXTO -->
                 <div class="col-lg-6 text-center text-lg-start mb-4 mb-lg-0">
-                    <h1 class="logo-text">
-                        <span class="call">Call</span>Vendas
-                    </h1>
+                    <div class="logo-wrapper">
+                        <img src="{{ url_for('static', filename='callvendas.png') }}" class="logo-hero">
+
+                        <h1 class="logo-text">
+                            <span class="call">Call</span>Vendas
+                        </h1>
+                    </div>
 
                     <p class="hero-sub">
                         Gere leads qualificados com base oficial da Receita Federal.
@@ -287,8 +507,41 @@
                 </div>
 
                 <!-- IMAGEM -->
-                <div class="col-lg-6 text-center">
-                    <img src="{{ url_for('static', filename='callvendas.png') }}" class="hero-img">
+                <div class="insight-box">
+
+                    <div class="insight-header">
+                        📈 Leads hoje
+                        <h2 id="contador">+0</h2>
+                    </div>
+
+                    <div class="chart">
+                        <div class="bar" style="--h: 40%"></div>
+                        <div class="bar" style="--h: 65%"></div>
+                        <div class="bar" style="--h: 55%"></div>
+                        <div class="bar" style="--h: 80%"></div>
+                        <div class="bar" style="--h: 70%"></div>
+                        <div class="bar" style="--h: 90%"></div>
+                    </div>
+
+                    <small class="text-white-50">Base atualizada em tempo real</small>
+
+                </div>
+                <div class="insight-group">
+
+                    <!-- CARD 2 -->
+                    <div class="insight-mini">
+                        <span>💬 Taxa de resposta</span>
+                        <h3>78%</h3>
+                        <small>Clientes respondem rápido</small>
+                    </div>
+
+                    <!-- CARD 3 -->
+                    <div class="insight-mini">
+                        <span>📍 Cidades ativas</span>
+                        <h3>+320</h3>
+                        <small>Base em expansão</small>
+                    </div>
+
                 </div>
 
             </div>
@@ -349,7 +602,24 @@
             🚀 Entrar no sistema
         </a>
     </section>
+    <script>
+        let count = 0;
+        let target = 2134; // 🔥 pode mudar depois dinamicamente
 
+        let intervalo = setInterval(() => {
+            count += 50;
+
+            if (count >= target) {
+                count = target;
+                clearInterval(intervalo);
+            }
+
+            document.getElementById("contador").innerText = "+" + count.toLocaleString("pt-BR");
+
+        }, 20);
+        id = "ex3"
+        document.querySelectorAll(".insight-mini h3")[0].innerText = "76%";
+    </script>
 </body>
 
 </html>
