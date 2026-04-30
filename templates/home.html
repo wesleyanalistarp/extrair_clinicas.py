@@ -16,11 +16,12 @@
 
         /* HERO */
         .hero {
-            height: 100vh;
-            background: linear-gradient(135deg, #2563eb, #1e40af);
-            color: white;
-            display: flex;
-            align-items: center;
+            background: radial-gradient(circle at top left,
+                    rgba(167, 139, 250, 0.3),
+                    transparent 40%),
+                linear-gradient(135deg,
+                    #4f46e5,
+                    #7c3aed);
         }
 
         .hero h1 {
@@ -66,89 +67,266 @@
             padding: 60px;
             text-align: center;
         }
+
+        .hero {
+            min-height: 100vh;
+            background: radial-gradient(circle at top left,
+                    rgba(167, 139, 250, 0.3),
+                    transparent 40%),
+                linear-gradient(135deg,
+                    #4f46e5,
+                    #7c3aed);
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 60px 20px;
+        }
+
+        /* TEXTO */
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .hero-sub {
+            font-size: 18px;
+            margin: 20px 0;
+            opacity: 0.9;
+        }
+
+        .hero-buttons {
+            margin-top: 20px;
+        }
+
+        /* IMAGEM */
+        .hero-img {
+            max-width: 320px;
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        /* BOTÃO PRINCIPAL */
+        .btn-main {
+            background: white;
+            color: #1e40af;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+
+        /* =========================
+   📱 MOBILE (CORREÇÃO REAL)
+========================= */
+        @media (max-width: 768px) {
+
+            .hero {
+                min-height: auto;
+                padding: 40px 20px;
+                text-align: center;
+            }
+
+            .hero-title {
+                font-size: 32px;
+            }
+
+            .hero-sub {
+                font-size: 15px;
+            }
+
+            .hero-img {
+                max-width: 220px;
+                margin-top: 20px;
+            }
+
+            .hero-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .btn-main,
+            .btn-outline-light {
+                width: 100%;
+            }
+        }
+
+        /* @media (max-width: 768px) {
+            .hero {
+                background: radial-gradient(circle at top left,
+                        rgba(167, 139, 250, 0.3),
+                        transparent 40%),
+                    linear-gradient(135deg,
+                        #4f46e5,
+                        #7c3aed);
+            }
+        } */
+
+        /* BOTÃO VOLTAR MOBILE */
+        .btn-back-mobile {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-decoration: none;
+            backdrop-filter: blur(6px);
+            transition: 0.2s;
+        }
+
+        .btn-back-mobile:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ESCONDE NO DESKTOP */
+        @media (min-width: 769px) {
+            .btn-back-mobile {
+                display: none;
+            }
+        }
+
+        .hero {
+            position: relative;
+        }
+
+        /* 🔥 TEXTO */
+        .support-text {
+            color: #4b5563;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+
+        /* 🔥 BOTÃO WHATSAPP */
+        .btn-whatsapp {
+            background: #25D366;
+            color: white;
+            padding: 12px 22px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+
+            animation: float 3s ease-in-out infinite;
+            transition: 0.3s;
+        }
+
+        .btn-whatsapp:hover {
+            transform: scale(1.05);
+        }
+
+        /* 🔥 ANIMAÇÃO SUAVE */
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
     </style>
 </head>
 
 <body>
 
-<!-- HERO -->
-<section class="hero">
-    <div class="container">
+    <!-- HERO -->
+    <section class="hero">
+        <div class="container">
+            <div class="row align-items-center">
 
-        <div class="row align-items-center">
+                <!-- TEXTO -->
+                <div class="col-lg-6 text-center text-lg-start mb-4 mb-lg-0">
+                    <h1 class="hero-title">CallVendas</h1>
 
-            <div class="col-md-6">
-                <h1>🚀 Leads Pro</h1>
+                    <p class="hero-sub">
+                        Gere leads qualificados com base oficial da Receita Federal.
+                        Filtre empresas por cidade, segmento e data.
+                    </p>
 
-                <p class="mt-3">
-                    Gere leads qualificados com base oficial da Receita Federal.
-                    Filtre empresas por cidade, segmento e data.
+                    <div class="hero-buttons">
+                        <a href="/login" class="btn btn-main me-2">
+                            🔐 Acessar Leads
+                        </a>
+
+                        <a href="/register" class="btn btn-outline-light">
+                            Criar conta
+                        </a>
+                    </div>
+                </div>
+
+                <!-- IMAGEM -->
+                <div class="col-lg-6 text-center">
+                    <img src="{{ url_for('static', filename='callvendas.png') }}" class="hero-img">
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="py-5">
+        <div class="container text-center">
+
+            <div class="support-minimal text-center mt-5 mb-5">
+
+                <p class="support-text">
+                    💬 Precisa de ajuda? Fale com nosso suporte para dúvidas, financeiro ou melhorias.
                 </p>
 
-                <div class="mt-4">
-                    <a href="/login" class="btn btn-main me-2">
-                        🔐 Acessar Leads
-                    </a>
+                <a href="https://wa.me/5577991162642?text=Olá,%20vim%20pelo%20CallVendas%20e%20preciso%20de%20ajuda%20(comercial/financeiro/suporte)."
+                    target="_blank" class="btn-whatsapp">
+                    WhatsApp
+                </a>
 
-                    <a href="/register" class="btn btn-outline-light">
-                        Criar conta
-                    </a>
-                </div>
             </div>
+            <h2 class="mb-4">Por que usar o CallVendas?</h2>
+            <div class="row">
 
-            <div class="col-md-6 text-center">
-                <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                     style="max-width: 300px;">
+                <div class="col-md-4">
+                    <div class="feature">
+                        <h4>📊 Base Gigante</h4>
+                        <p>Milhões de empresas atualizadas direto da Receita Federal.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="feature">
+                        <h4>⚡ Filtros Inteligentes</h4>
+                        <p>Busque por cidade, UF, palavra-chave e data.</p>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="feature">
+                        <h4>📞 Contato Direto</h4>
+                        <p>Telefone e email prontos para prospecção.</p>
+                    </div>
+                </div>
+
             </div>
 
         </div>
+    </section>
 
-    </div>
-</section>
+    <!-- CTA FINAL -->
+    <section class="cta">
+        <h2>Pronto para gerar leads?</h2>
+        <p class="mt-2">Comece agora e acelere suas vendas</p>
 
-<!-- FEATURES -->
-<section class="py-5">
-    <div class="container text-center">
-
-        <h2 class="mb-4">Por que usar o Leads Pro?</h2>
-
-        <div class="row">
-
-            <div class="col-md-4">
-                <div class="feature">
-                    <h4>📊 Base Gigante</h4>
-                    <p>Milhões de empresas atualizadas direto da Receita Federal.</p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="feature">
-                    <h4>⚡ Filtros Inteligentes</h4>
-                    <p>Busque por cidade, UF, palavra-chave e data.</p>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="feature">
-                    <h4>📞 Contato Direto</h4>
-                    <p>Telefone e email prontos para prospecção.</p>
-                </div>
-            </div>
-
-        </div>
-
-    </div>
-</section>
-
-<!-- CTA FINAL -->
-<section class="cta">
-    <h2>Pronto para gerar leads?</h2>
-    <p class="mt-2">Comece agora e acelere suas vendas</p>
-
-    <a href="/login" class="btn btn-primary mt-3 px-4 py-2">
-        🚀 Entrar no sistema
-    </a>
-</section>
+        <a href="/login" class="btn btn-primary mt-3 px-4 py-2">
+            🚀 Entrar no sistema
+        </a>
+    </section>
 
 </body>
+
 </html>

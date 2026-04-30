@@ -86,6 +86,41 @@
             margin-top: 15px;
             font-size: 18px;
         }
+
+        /* MOBILE LOGIN BACKGROUND */
+        @media (max-width: 768px) {
+            body {
+                background: linear-gradient(135deg,
+                        #4f46e5,
+                        #7c3aed,
+                        #a78bfa);
+            }
+
+            .container-fluid {
+                background: transparent !important;
+            }
+        }
+
+        /* CARD ESTILO PREMIUM */
+        .card-login {
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            padding: 25px;
+        }
+
+        /* BOTÃO VOLTAR */
+        .btn-voltar-login {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .btn-voltar-login:hover {
+            color: #111827;
+        }
     </style>
 </head>
 
@@ -113,9 +148,9 @@
             </div>
 
             <!-- DIREITA -->
-            <div class="col-md-6 d-flex justify-content-center align-items-center">
+            <div class="col-md-6 d-flex justify-content-center align-items-center position-relative">
 
-                <div class="card shadow p-4 w-100" style="max-width: 360px; border-radius: 12px;">
+                <div class="card card-login w-100">
 
                     <div class="text-center mb-3">
                         <h4>🔐 Entrar</h4>
@@ -138,7 +173,7 @@
                             <input name="password" type="password" class="form-control" placeholder="Senha" required>
                         </div>
 
-                        <button class="btn btn-primary w-100">
+                        <button class="btn btn-primary w-100 fw-semibold">
                             Entrar
                         </button>
 
@@ -149,6 +184,9 @@
                             Não tem conta?
                             <a href="/register">Criar conta</a>
                         </small>
+                        <a href="/" class="btn-voltar-login">
+                            ← Voltar para Home
+                        </a>
                     </div>
 
                 </div>

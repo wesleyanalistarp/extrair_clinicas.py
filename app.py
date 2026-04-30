@@ -380,22 +380,15 @@ def salvar_snapshot():
     print("Snapshot salvo!")
 
 # 📝 REGISTER
+from flask import flash, redirect, url_for
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if current_user.is_authenticated:
-        return redirect("/dashboard")
-
-    erro = None
+    sucesso = False
 
     if request.method == "POST":
         email = request.form.get("email")
-        senha = request.form.get("password")
-
-        if not email or not senha:
-            erro = "Preencha todos os campos"
-            return render_template("register.html", erro=erro)
-
-        senha_hash = generate_password_hash(senha)
+        senha = request.form.get("senha")
 
         conn = sqlite3.connect("usuarios.db")
         cursor = conn.cursor()
@@ -403,18 +396,19 @@ def register():
         try:
             cursor.execute(
                 "INSERT INTO users (email, password) VALUES (?, ?)",
-                (email, senha_hash)
+                (email, senha)
             )
             conn.commit()
-        except sqlite3.IntegrityError:
-            erro = "Esse email já está cadastrado"
+
+            sucesso = True  # 🔥 ATIVA O OVERLAY
+
+        except:
+            sucesso = False
+
+        finally:
             conn.close()
-            return render_template("register.html", erro=erro)
 
-        conn.close()
-        return redirect("/login")
-
-    return render_template("register.html", erro=erro)
+    return render_template("register.html", sucesso=sucesso)
 
 
 # 🚪 LOGOUT
