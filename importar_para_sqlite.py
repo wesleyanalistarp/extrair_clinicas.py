@@ -1,12 +1,14 @@
 import sqlite3
 import os
 import csv
+from datetime import datetime  # 🔥 NOVO
 
 PASTA = "dados_receita"
 
 conn = sqlite3.connect("empresas.db")
 cursor = conn.cursor()
 
+# 🔥 recria tabela principal
 cursor.execute("DROP TABLE IF EXISTS empresas")
 
 cursor.execute("""
@@ -20,6 +22,14 @@ CREATE TABLE empresas (
     DDD_1 TEXT,
     TELEFONE_1 TEXT,
     CORREIO_ELETRONICO TEXT
+)
+""")
+
+# 🔥 cria tabela de controle (NOVA)
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS sistema_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ultima_atualizacao TEXT
 )
 """)
 
@@ -38,7 +48,6 @@ def processar_arquivo(caminho):
 
         for partes in reader:
 
-            # 🔥 garante estrutura correta
             if len(partes) < 27:
                 continue
 
@@ -64,7 +73,7 @@ def processar_arquivo(caminho):
                     conn.commit()
                     batch.clear()
 
-            except Exception as e:
+            except Exception:
                 continue
 
         if batch:
@@ -74,6 +83,7 @@ def processar_arquivo(caminho):
             conn.commit()
 
 
+# 🔥 IMPORTAÇÃO
 for root, dirs, files in os.walk(PASTA):
     for file in files:
         caminho = os.path.join(root, file)
@@ -83,6 +93,18 @@ for root, dirs, files in os.walk(PASTA):
         processar_arquivo(caminho)
 
 
+# 🔥 SALVA DATA REAL DA BASE (ESSENCIAL)
+data_importacao = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+cursor.execute("DELETE FROM sistema_info")
+
+cursor.execute("""
+INSERT INTO sistema_info (ultima_atualizacao)
+VALUES (?)
+""", (data_importacao,))
+
+conn.commit()
 conn.close()
 
 print("✅ IMPORTAÇÃO FINALIZADA")
+print(f"📅 Base atualizada em: {data_importacao}")

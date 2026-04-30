@@ -144,9 +144,16 @@ def buscar_empresas(cidade, uf, palavra, data_min):
 
     return dados
 
+# =========================
+# 🏠 HOME (NOVA)
+# =========================
+@app.route("/")
+def home():
+    return render_template("home.html")
+
 
 # 🏠 HOME (PROTEGIDA)
-@app.route("/", methods=["GET", "POST"])
+@app.route("/buscar", methods=["GET", "POST"])
 @login_required
 def index():
     if request.method == "POST":
@@ -163,32 +170,29 @@ def index():
             municipio_codigo = str(row["municipio"]).strip()
             nome_municipio = mapa_municipios.get(municipio_codigo, municipio_codigo)
 
-            telefone = ""
-            if row.get("telefone"):
-                telefone = row["telefone"]
+            telefone = row["telefone"] or ""
 
             dados_formatados.append({
-                "cnpj": row.get("cnpj"),
-                "nome": row.get("nome") or "Sem nome",
-                "uf": row.get("uf"),
+                "cnpj": row["cnpj"],
+                "nome": row["nome"] or "Sem nome",
+                "uf": row["uf"],
                 "municipio": nome_municipio,
-                "data": row.get("data"),
+                "data": row["data"],
                 "telefone": telefone,
-                "email": row.get("email") or "",
-                "cnae": row.get("cnae")  # 🔥 IMPORTANTE
+                "email": row["email"],
+                "cnae": row["cnae"]
             })
 
         return render_template("resultados.html", dados=dados_formatados)
 
     return render_template("index.html", municipios=mapa_municipios)
+
 # 📊 DASHBOARD
 from datetime import datetime, timedelta
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    from datetime import datetime
-
     conn = sqlite3.connect("empresas.db")
     cursor = conn.cursor()
 
@@ -285,7 +289,20 @@ def dashboard():
     perc_empresas = calc_percentual(total_empresas, total_empresas_ant)
     perc_tel = calc_percentual(total_com_telefone, total_tel_ant)
 
-    data_atualizacao = datetime.now().strftime("%d/%m/%Y %H:%M")
+    # 🔥 DATA REAL DA BASE (CORRETO)
+    cursor.execute("""
+        SELECT ultima_atualizacao
+        FROM sistema_info
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    row = cursor.fetchone()
+
+    if row:
+        data_atualizacao = row[0]
+    else:
+        data_atualizacao = "Não definido"
 
     conn.close()
 
