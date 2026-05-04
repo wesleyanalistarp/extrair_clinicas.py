@@ -390,14 +390,18 @@ def register():
 
     if request.method == "POST":
         email = request.form.get("email")
-        senha = request.form.get("senha")
+        senha = request.form.get("password")  # 🔥 CORRIGIDO
 
-        if User.query.filter_by(email=email).first():
+        if not email or not senha:
+            erro = "Preencha todos os campos"
+        elif User.query.filter_by(email=email).first():
             erro = "⚠️ Este email já está cadastrado."
         else:
+            senha_hash = generate_password_hash(senha)
+
             novo_user = User(
                 email=email,
-                senha=generate_password_hash(senha)
+                senha=senha_hash
             )
 
             db.session.add(novo_user)
