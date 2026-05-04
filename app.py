@@ -9,40 +9,59 @@ from flask_login import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
-import os
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin
+import os
 
 app = Flask(__name__)
 app.secret_key = "segredo-super"
 
+# =========================
+# BANCO DE DADOS
+# =========================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
     raise ValueError("❌ DATABASE_URL não definida no Render")
 
-# Correção padrão (caso venha como postgres://)
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-with app.app_context():
-    db.create_all()
+db = SQLAlchemy(app)
 
-# 🔐 LOGIN MANAGER
+# =========================
+# LOGIN MANAGER
+# =========================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
+# =========================
+# MODEL DE USUÁRIO (ESSENCIAL)
+# =========================
+class User(UserMixin, db.Model):
+    __tablename__ = "usuarios"
 
-# 👤 USER CLASS
-class User(UserMixin):
-    def __init__(self, id, email):
-        self.id = id
-        self.email = email
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    senha = db.Column(db.String(200), nullable=False)
 
+# =========================
+# LOAD USER (FLASK LOGIN)
+# =========================
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# =========================
+# CRIAR TABELAS
+# =========================
+with app.app_context():
+    db.create_all()
 # 🔢 filtro número BR
 @app.template_filter('numero_br')
 def numero_br(valor):
@@ -61,21 +80,6 @@ def data_br(valor):
         return f"{valor[6:8]}/{valor[4:6]}/{valor[0:4]}"
     except:
         return valor
-
-# 🔥 CARREGAR USUÁRIO (ESSENCIAL)
-@login_manager.user_loader
-def load_user(user_id):
-    conn = sqlite3.connect("usuarios.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT id, email FROM users WHERE id = ?", (user_id,))
-    user = cursor.fetchone()
-
-    conn.close()
-
-    if user:
-        return User(user[0], user[1])
-    return None
 
 
 # 🔹 carregar municípios
@@ -366,47 +370,15 @@ def login():
         email = request.form.get("email")
         senha = request.form.get("password")
 
-        conn = sqlite3.connect("usuarios.db")
-        cursor = conn.cursor()
+        user = User.query.filter_by(email=email).first()
 
-        cursor.execute("SELECT id, email, password FROM users WHERE email = ?", (email,))
-        user = cursor.fetchone()
-        conn.close()
-
-        if user and check_password_hash(user[2], senha):
-            login_user(User(user[0], user[1]))
+        if user and check_password_hash(user.senha, senha):
+            login_user(user)
             return redirect("/dashboard")
         else:
             erro = "Email ou senha incorretos"
 
     return render_template("login.html", erro=erro)
-
-def salvar_snapshot():
-    conn = sqlite3.connect("empresas.db")
-    cursor = conn.cursor()
-
-    # pega dados atuais
-    cursor.execute("SELECT COUNT(*) FROM empresas")
-    total_empresas = cursor.fetchone()[0]
-
-    cursor.execute("""
-        SELECT COUNT(*) FROM empresas
-        WHERE TELEFONE_1 IS NOT NULL AND TELEFONE_1 != ''
-    """)
-    total_telefone = cursor.fetchone()[0]
-
-    agora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # salva
-    cursor.execute("""
-        INSERT INTO dashboard_snapshot (data, total_empresas, total_telefone)
-        VALUES (?, ?, ?)
-    """, (agora, total_empresas, total_telefone))
-
-    conn.commit()
-    conn.close()
-
-    print("Snapshot salvo!")
 
 # 📝 REGISTER
 from flask import flash, redirect, url_for
@@ -420,23 +392,18 @@ def register():
         email = request.form.get("email")
         senha = request.form.get("senha")
 
-        conn = sqlite3.connect("usuarios.db")
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute(
-                "INSERT INTO users (email, password) VALUES (?, ?)",
-                (email, generate_password_hash(senha))
+        if User.query.filter_by(email=email).first():
+            erro = "⚠️ Este email já está cadastrado."
+        else:
+            novo_user = User(
+                email=email,
+                senha=generate_password_hash(senha)
             )
-            conn.commit()
 
-            sucesso = True  # 🔥 ativa overlay
+            db.session.add(novo_user)
+            db.session.commit()
 
-        except sqlite3.IntegrityError:
-            erro = "⚠️ Este email já está cadastrado. Tente fazer login."
-
-        finally:
-            conn.close()
+            sucesso = True
 
     return render_template("register.html", sucesso=sucesso, erro=erro)
 
