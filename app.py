@@ -81,19 +81,24 @@ def data_br(valor):
 
 
 # 🔹 carregar municípios
-municipios_df = pd.read_csv(
-    "F.K03200$Z.D60411.MUNICCSV",
-    sep=";",
-    dtype=str,
-    encoding="latin1"
-)
+try:
+    municipios_df = pd.read_csv(
+        "F.K03200$Z.D60411.MUNICCSV",
+        sep=";",
+        dtype=str,
+        encoding="latin1"
+    )
 
-municipios_df.columns = ["codigo", "nome"]
+    municipios_df.columns = ["codigo", "nome"]
 
-mapa_municipios = dict(zip(
-    municipios_df["codigo"].str.strip(),
-    municipios_df["nome"].str.strip().str.upper()
-))
+    mapa_municipios = dict(zip(
+        municipios_df["codigo"].str.strip(),
+        municipios_df["nome"].str.strip().str.upper()
+    ))
+
+except Exception as e:
+    print("⚠️ ERRO AO CARREGAR MUNICÍPIOS:", e)
+    mapa_municipios = {}
 
 
 def buscar_empresas(cidade, uf, palavra, data_min):
@@ -401,8 +406,10 @@ def logout():
 @app.route("/download")
 @login_required
 def download():
-    return send_file("resultado.csv", as_attachment=True)
+    if not os.path.exists("resultado.csv"):
+        return "Arquivo não encontrado", 404
 
+    return send_file("resultado.csv", as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
