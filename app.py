@@ -1,5 +1,5 @@
 import os
-import sqlite3
+# import sqlite3
 import pandas as pd
 from flask import Flask, render_template, request, redirect, send_file
 from flask_login import (
@@ -15,15 +15,12 @@ from flask_login import LoginManager, UserMixin
 import os
 
 app = Flask(__name__)
-app.secret_key = "segredo-super"
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
-# =========================
-# BANCO DE DADOS
-# =========================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError("❌ DATABASE_URL não definida no Render")
+    raise ValueError("❌ DATABASE_URL não definida")
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -99,9 +96,6 @@ mapa_municipios = dict(zip(
 
 
 def buscar_empresas(cidade, uf, palavra, data_min):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
     query = """
     SELECT 
         CNPJ,
@@ -117,23 +111,23 @@ def buscar_empresas(cidade, uf, palavra, data_min):
     WHERE 1=1
     """
 
-    params = []
+    params = {}
 
     if uf:
-        query += " AND UF = ?"
-        params.append(uf.upper())
+        query += " AND UF = :uf"
+        params["uf"] = uf.upper()
 
     if cidade:
-        query += " AND MUNICIPIO = ?"
-        params.append(cidade)
+        query += " AND MUNICIPIO = :cidade"
+        params["cidade"] = cidade
 
     if palavra:
-        query += " AND UPPER(NOME_FANTASIA) LIKE ?"
-        params.append(f"%{palavra.upper()}%")
+        query += " AND UPPER(NOME_FANTASIA) LIKE :palavra"
+        params["palavra"] = f"%{palavra.upper()}%"
 
     if data_min:
-        query += " AND DATA_INICIO_ATIVIDADE >= ?"
-        params.append(data_min.replace("-", ""))
+        query += " AND DATA_INICIO_ATIVIDADE >= :data_min"
+        params["data_min"] = data_min.replace("-", "")
 
     query += """
     AND (
@@ -141,16 +135,12 @@ def buscar_empresas(cidade, uf, palavra, data_min):
         OR
         (CORREIO_ELETRONICO IS NOT NULL AND CORREIO_ELETRONICO != '')
     )
+    LIMIT 200
     """
 
-    query += " LIMIT 200"
+    result = db.session.execute(text(query), params)
+    rows = result.fetchall()
 
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-
-    conn.close()
-
-    # 🔥 CONVERTE PARA DICIONÁRIO (ESSENCIAL)
     dados = []
 
     for row in rows:
@@ -158,7 +148,6 @@ def buscar_empresas(cidade, uf, palavra, data_min):
         tel = row[6] or ""
 
         telefone = ""
-
         if ddd and tel:
             telefone = f"{ddd}{tel}"
         elif tel:
@@ -226,86 +215,77 @@ from datetime import datetime, timedelta
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    conn = sqlite3.connect("empresas.db")
-    cursor = conn.cursor()
 
     # TOTAL EMPRESAS
-    cursor.execute("SELECT COUNT(*) FROM empresas")
-    total_empresas = cursor.fetchone()[0]
+    total_empresas = db.session.execute(
+        text("SELECT COUNT(*) FROM empresas")
+    ).scalar()
 
     # COM TELEFONE
-    cursor.execute("""
+    total_com_telefone = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
         WHERE TELEFONE_1 IS NOT NULL AND TELEFONE_1 != ''
-    """)
-    total_com_telefone = cursor.fetchone()[0]
+    """)).scalar()
 
     # ÚLTIMOS 30 DIAS
-    cursor.execute("""
+    ult_30 = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
-        WHERE DATA_INICIO_ATIVIDADE >= strftime('%Y%m%d','now','-30 day')
-    """)
-    ult_30 = cursor.fetchone()[0]
+        WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '30 days', 'YYYYMMDD')
+    """)).scalar()
 
     # ÚLTIMOS 60 DIAS
-    cursor.execute("""
+    ult_60 = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
-        WHERE DATA_INICIO_ATIVIDADE >= strftime('%Y%m%d','now','-60 day')
-    """)
-    ult_60 = cursor.fetchone()[0]
+        WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYYMMDD')
+    """)).scalar()
 
     # ÚLTIMOS 90 DIAS
-    cursor.execute("""
+    ult_90 = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
-        WHERE DATA_INICIO_ATIVIDADE >= strftime('%Y%m%d','now','-90 day')
-    """)
-    ult_90 = cursor.fetchone()[0]
+        WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYYMMDD')
+    """)).scalar()
 
-    # TOP UF (CACHE)
-    cursor.execute("""
+    # TOP UF
+    top_uf = db.session.execute(text("""
         SELECT UF, total
         FROM cache_uf
         ORDER BY total DESC
         LIMIT 1
-    """)
-    top_uf = cursor.fetchone()
+    """)).fetchone()
 
-    # TOP MUNICÍPIOS (CACHE)
-    cursor.execute("""
+    # TOP MUNICÍPIOS
+    top_municipios_raw = db.session.execute(text("""
         SELECT MUNICIPIO, total
         FROM cache_municipios
         ORDER BY total DESC
         LIMIT 5
-    """)
-    top_municipios_raw = cursor.fetchall()
+    """)).fetchall()
 
     top_municipios = []
     for cod, total in top_municipios_raw:
         nome = mapa_municipios.get(str(cod).strip(), cod)
         top_municipios.append((nome, total))
 
-    # GRÁFICO (CACHE)
-    cursor.execute("""
+    # GRÁFICO
+    dados_brutos = db.session.execute(text("""
         SELECT MUNICIPIO, total
         FROM cache_municipios
         ORDER BY total DESC
         LIMIT 10
-    """)
-    dados_brutos = cursor.fetchall()
+    """)).fetchall()
 
     grafico = []
     for cod, total in dados_brutos:
         nome = mapa_municipios.get(str(cod).strip(), cod)
         grafico.append((nome, total))
 
-    # 🔥 HISTÓRICO REAL
-    cursor.execute("""
+    # HISTÓRICO
+    anterior = db.session.execute(text("""
         SELECT total_empresas, total_telefone
         FROM dashboard_snapshot
         ORDER BY id DESC
         LIMIT 1 OFFSET 1
-    """)
-    anterior = cursor.fetchone()
+    """)).fetchone()
 
     if anterior:
         total_empresas_ant, total_tel_ant = anterior
@@ -313,7 +293,7 @@ def dashboard():
         total_empresas_ant = total_empresas
         total_tel_ant = total_com_telefone
 
-    # 🔥 CÁLCULO %
+    # % crescimento
     def calc_percentual(atual, anterior):
         if anterior == 0:
             return 0
@@ -322,22 +302,18 @@ def dashboard():
     perc_empresas = calc_percentual(total_empresas, total_empresas_ant)
     perc_tel = calc_percentual(total_com_telefone, total_tel_ant)
 
-    # 🔥 DATA REAL DA BASE (CORRETO)
-    cursor.execute("""
+    # DATA ATUALIZAÇÃO
+    row = db.session.execute(text("""
         SELECT ultima_atualizacao
         FROM sistema_info
         ORDER BY id DESC
         LIMIT 1
-    """)
-
-    row = cursor.fetchone()
+    """)).fetchone()
 
     if row:
         data_atualizacao = row[0]
     else:
         data_atualizacao = "Não definido"
-
-    conn.close()
 
     return render_template(
         "dashboard.html",
@@ -350,7 +326,6 @@ def dashboard():
         top_municipios=top_municipios,
         grafico=grafico,
 
-        # NOVOS
         total_empresas_ant=total_empresas_ant,
         total_tel_ant=total_tel_ant,
         perc_empresas=perc_empresas,
@@ -361,9 +336,6 @@ def dashboard():
 # 🔐 LOGIN
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    if current_user.is_authenticated:
-        return redirect("/dashboard")
-
     erro = None
 
     if request.method == "POST":
@@ -374,9 +346,9 @@ def login():
 
         if user and check_password_hash(user.senha, senha):
             login_user(user)
-            return redirect("/dashboard")
+            return redirect("/")
         else:
-            erro = "Email ou senha incorretos"
+            erro = "Email ou senha inválidos"
 
     return render_template("login.html", erro=erro)
 
@@ -390,27 +362,31 @@ def register():
 
     if request.method == "POST":
         email = request.form.get("email")
-        senha = request.form.get("password")  # 🔥 CORRIGIDO
+        senha = request.form.get("password")
 
-        if not email or not senha:
-            erro = "Preencha todos os campos"
-        elif User.query.filter_by(email=email).first():
-            erro = "⚠️ Este email já está cadastrado."
-        else:
-            senha_hash = generate_password_hash(senha)
+        try:
+            if not email or not senha:
+                erro = "Preencha todos os campos"
 
-            novo_user = User(
-                email=email,
-                senha=senha_hash
-            )
+            elif User.query.filter_by(email=email).first():
+                erro = "⚠️ Email já cadastrado"
 
-            db.session.add(novo_user)
-            db.session.commit()
+            else:
+                novo_user = User(
+                    email=email,
+                    senha=generate_password_hash(senha)
+                )
 
-            sucesso = True
+                db.session.add(novo_user)
+                db.session.commit()
+
+                sucesso = True
+
+        except Exception as e:
+            db.session.rollback()
+            erro = f"Erro interno: {str(e)}"
 
     return render_template("register.html", sucesso=sucesso, erro=erro)
-
 
 # 🚪 LOGOUT
 @app.route("/logout")
