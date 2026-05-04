@@ -232,67 +232,77 @@ def index():
 @login_required
 def dashboard():
 
-    total_empresas = db.session.execute(
-        text("SELECT COUNT(*) FROM empresas")
-    ).scalar()
+    def safe_scalar(query):
+        try:
+            return db.session.execute(text(query)).scalar() or 0
+        except Exception as e:
+            print("ERRO:", e)
+            return 0
 
-    total_com_telefone = db.session.execute(text("""
+    def safe_fetchone(query):
+        try:
+            return db.session.execute(text(query)).fetchone()
+        except Exception as e:
+            print("ERRO:", e)
+            return None
+
+    def safe_fetchall(query):
+        try:
+            return db.session.execute(text(query)).fetchall()
+        except Exception as e:
+            print("ERRO:", e)
+            return []
+
+    total_empresas = safe_scalar("SELECT COUNT(*) FROM empresas")
+
+    total_com_telefone = safe_scalar("""
         SELECT COUNT(*) FROM empresas
         WHERE TELEFONE_1 IS NOT NULL AND TELEFONE_1 != ''
-    """)).scalar()
+    """)
 
-    ult_30 = db.session.execute(text("""
+    ult_30 = safe_scalar("""
         SELECT COUNT(*) FROM empresas
         WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '30 days', 'YYYYMMDD')
-    """)).scalar()
+    """)
 
-    ult_60 = db.session.execute(text("""
+    ult_60 = safe_scalar("""
         SELECT COUNT(*) FROM empresas
         WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYYMMDD')
-    """)).scalar()
+    """)
 
-    ult_90 = db.session.execute(text("""
+    ult_90 = safe_scalar("""
         SELECT COUNT(*) FROM empresas
         WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYYMMDD')
-    """)).scalar()
+    """)
 
-    top_uf = db.session.execute(text("""
-        SELECT UF, total
-        FROM cache_uf
-        ORDER BY total DESC
-        LIMIT 1
-    """)).fetchone()
+    top_uf = safe_fetchone("""
+        SELECT UF, total FROM cache_uf ORDER BY total DESC LIMIT 1
+    """)
 
-    top_municipios_raw = db.session.execute(text("""
-        SELECT MUNICIPIO, total
-        FROM cache_municipios
-        ORDER BY total DESC
-        LIMIT 5
-    """)).fetchall()
+    top_municipios_raw = safe_fetchall("""
+        SELECT MUNICIPIO, total FROM cache_municipios ORDER BY total DESC LIMIT 5
+    """)
 
     top_municipios = [
         (mapa_municipios.get(str(cod).strip(), cod), total)
         for cod, total in top_municipios_raw
     ]
 
-    dados_brutos = db.session.execute(text("""
-        SELECT MUNICIPIO, total
-        FROM cache_municipios
-        ORDER BY total DESC
-        LIMIT 10
-    """)).fetchall()
+    grafico_raw = safe_fetchall("""
+        SELECT MUNICIPIO, total FROM cache_municipios ORDER BY total DESC LIMIT 10
+    """)
 
     grafico = [
         (mapa_municipios.get(str(cod).strip(), cod), total)
-        for cod, total in dados_brutos
+        for cod, total in grafico_raw
     ]
 
-    anterior = db.session.execute(text("""
+    anterior = safe_fetchone("""
         SELECT total_empresas, total_telefone
         FROM dashboard_snapshot
         ORDER BY id DESC
         LIMIT 1 OFFSET 1
-    """)).fetchone()
+    """)
 
     if anterior:
         total_empresas_ant, total_tel_ant = anterior
@@ -308,12 +318,12 @@ def dashboard():
     perc_empresas = calc_percentual(total_empresas, total_empresas_ant)
     perc_tel = calc_percentual(total_com_telefone, total_tel_ant)
 
-    row = db.session.execute(text("""
+    row = safe_fetchone("""
         SELECT ultima_atualizacao
         FROM sistema_info
         ORDER BY id DESC
         LIMIT 1
-    """)).fetchone()
+    """)
 
     data_atualizacao = row[0] if row else "Não definido"
 
@@ -333,7 +343,6 @@ def dashboard():
         perc_tel=perc_tel,
         data_atualizacao=data_atualizacao
     )
-
 # =========================
 # LOGIN
 # =========================
