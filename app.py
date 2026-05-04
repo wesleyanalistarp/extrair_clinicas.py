@@ -62,8 +62,7 @@ def load_user(user_id):
 # =========================
 # 🔥 GARANTE TABELA EM PRODUÇÃO
 # =========================
-@app.before_request
-def criar_tabelas():
+with app.app_context():
     db.create_all()
 
 # =========================
@@ -350,7 +349,8 @@ def login():
 
         if user and check_password_hash(user.senha, senha):
             login_user(user)
-            return redirect("/")
+            next_page = request.args.get("next")
+            return redirect(next_page or "/dashboard")
         else:
             erro = "Email ou senha inválidos"
 
