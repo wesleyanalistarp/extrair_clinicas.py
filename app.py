@@ -1,23 +1,25 @@
 import os
-# import sqlite3
 import pandas as pd
-from flask import Flask, render_template, request, redirect, send_file
+
+from flask import Flask, render_template, request, redirect, send_file, url_for
 from flask_login import (
     LoginManager, UserMixin,
     login_user, login_required,
     logout_user, current_user
 )
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
-from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin
-import os
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
 
+# =========================
+# APP
+# =========================
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
+# =========================
+# BANCO (NEON)
+# =========================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
@@ -29,17 +31,22 @@ if DATABASE_URL.startswith("postgres://"):
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# 🔥 estabilidade conexão Neon
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True
+}
+
 db = SQLAlchemy(app)
 
 # =========================
-# LOGIN MANAGER
+# LOGIN
 # =========================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
 # =========================
-# MODEL DE USUÁRIO (ESSENCIAL)
+# MODEL USUARIO
 # =========================
 class User(UserMixin, db.Model):
     __tablename__ = "usuarios"
@@ -48,19 +55,20 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     senha = db.Column(db.String(200), nullable=False)
 
-# =========================
-# LOAD USER (FLASK LOGIN)
-# =========================
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 # =========================
-# CRIAR TABELAS
+# 🔥 GARANTE TABELA EM PRODUÇÃO
 # =========================
-with app.app_context():
+@app.before_request
+def criar_tabelas():
     db.create_all()
-# 🔢 filtro número BR
+
+# =========================
+# FILTROS
+# =========================
 @app.template_filter('numero_br')
 def numero_br(valor):
     try:
@@ -68,7 +76,6 @@ def numero_br(valor):
     except:
         return valor
 
-# 📅 filtro data BR
 @app.template_filter('data_br')
 def data_br(valor):
     try:
@@ -79,28 +86,33 @@ def data_br(valor):
     except:
         return valor
 
+# =========================
+# MUNICIPIOS (PROTEGIDO)
+# =========================
+mapa_municipios = {}
 
-# 🔹 carregar municípios
 try:
-    municipios_df = pd.read_csv(
-        "F.K03200$Z.D60411.MUNICCSV",
-        sep=";",
-        dtype=str,
-        encoding="latin1"
-    )
+    if os.path.exists("F.K03200$Z.D60411.MUNICCSV"):
+        municipios_df = pd.read_csv(
+            "F.K03200$Z.D60411.MUNICCSV",
+            sep=";",
+            dtype=str,
+            encoding="latin1"
+        )
 
-    municipios_df.columns = ["codigo", "nome"]
+        municipios_df.columns = ["codigo", "nome"]
 
-    mapa_municipios = dict(zip(
-        municipios_df["codigo"].str.strip(),
-        municipios_df["nome"].str.strip().str.upper()
-    ))
+        mapa_municipios = dict(zip(
+            municipios_df["codigo"].str.strip(),
+            municipios_df["nome"].str.strip().str.upper()
+        ))
 
 except Exception as e:
-    print("⚠️ ERRO AO CARREGAR MUNICÍPIOS:", e)
-    mapa_municipios = {}
+    print("⚠️ ERRO MUNICIPIOS:", e)
 
-
+# =========================
+# BUSCA EMPRESAS
+# =========================
 def buscar_empresas(cidade, uf, palavra, data_min):
     query = """
     SELECT 
@@ -173,14 +185,15 @@ def buscar_empresas(cidade, uf, palavra, data_min):
     return dados
 
 # =========================
-# 🏠 HOME (NOVA)
+# HOME
 # =========================
 @app.route("/")
 def home():
     return render_template("home.html")
 
-
-# 🏠 HOME (PROTEGIDA)
+# =========================
+# BUSCAR
+# =========================
 @app.route("/buscar", methods=["GET", "POST"])
 @login_required
 def index():
@@ -198,15 +211,13 @@ def index():
             municipio_codigo = str(row["municipio"]).strip()
             nome_municipio = mapa_municipios.get(municipio_codigo, municipio_codigo)
 
-            telefone = row["telefone"] or ""
-
             dados_formatados.append({
                 "cnpj": row["cnpj"],
                 "nome": row["nome"] or "Sem nome",
                 "uf": row["uf"],
                 "municipio": nome_municipio,
                 "data": row["data"],
-                "telefone": telefone,
+                "telefone": row["telefone"],
                 "email": row["email"],
                 "cnae": row["cnae"]
             })
@@ -215,43 +226,37 @@ def index():
 
     return render_template("index.html", municipios=mapa_municipios)
 
-# 📊 DASHBOARD
-from datetime import datetime, timedelta
-
+# =========================
+# DASHBOARD
+# =========================
 @app.route("/dashboard")
 @login_required
 def dashboard():
 
-    # TOTAL EMPRESAS
     total_empresas = db.session.execute(
         text("SELECT COUNT(*) FROM empresas")
     ).scalar()
 
-    # COM TELEFONE
     total_com_telefone = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
         WHERE TELEFONE_1 IS NOT NULL AND TELEFONE_1 != ''
     """)).scalar()
 
-    # ÚLTIMOS 30 DIAS
     ult_30 = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
         WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '30 days', 'YYYYMMDD')
     """)).scalar()
 
-    # ÚLTIMOS 60 DIAS
     ult_60 = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
         WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYYMMDD')
     """)).scalar()
 
-    # ÚLTIMOS 90 DIAS
     ult_90 = db.session.execute(text("""
         SELECT COUNT(*) FROM empresas
         WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYYMMDD')
     """)).scalar()
 
-    # TOP UF
     top_uf = db.session.execute(text("""
         SELECT UF, total
         FROM cache_uf
@@ -259,7 +264,6 @@ def dashboard():
         LIMIT 1
     """)).fetchone()
 
-    # TOP MUNICÍPIOS
     top_municipios_raw = db.session.execute(text("""
         SELECT MUNICIPIO, total
         FROM cache_municipios
@@ -267,12 +271,11 @@ def dashboard():
         LIMIT 5
     """)).fetchall()
 
-    top_municipios = []
-    for cod, total in top_municipios_raw:
-        nome = mapa_municipios.get(str(cod).strip(), cod)
-        top_municipios.append((nome, total))
+    top_municipios = [
+        (mapa_municipios.get(str(cod).strip(), cod), total)
+        for cod, total in top_municipios_raw
+    ]
 
-    # GRÁFICO
     dados_brutos = db.session.execute(text("""
         SELECT MUNICIPIO, total
         FROM cache_municipios
@@ -280,12 +283,11 @@ def dashboard():
         LIMIT 10
     """)).fetchall()
 
-    grafico = []
-    for cod, total in dados_brutos:
-        nome = mapa_municipios.get(str(cod).strip(), cod)
-        grafico.append((nome, total))
+    grafico = [
+        (mapa_municipios.get(str(cod).strip(), cod), total)
+        for cod, total in dados_brutos
+    ]
 
-    # HISTÓRICO
     anterior = db.session.execute(text("""
         SELECT total_empresas, total_telefone
         FROM dashboard_snapshot
@@ -299,7 +301,6 @@ def dashboard():
         total_empresas_ant = total_empresas
         total_tel_ant = total_com_telefone
 
-    # % crescimento
     def calc_percentual(atual, anterior):
         if anterior == 0:
             return 0
@@ -308,7 +309,6 @@ def dashboard():
     perc_empresas = calc_percentual(total_empresas, total_empresas_ant)
     perc_tel = calc_percentual(total_com_telefone, total_tel_ant)
 
-    # DATA ATUALIZAÇÃO
     row = db.session.execute(text("""
         SELECT ultima_atualizacao
         FROM sistema_info
@@ -316,10 +316,7 @@ def dashboard():
         LIMIT 1
     """)).fetchone()
 
-    if row:
-        data_atualizacao = row[0]
-    else:
-        data_atualizacao = "Não definido"
+    data_atualizacao = row[0] if row else "Não definido"
 
     return render_template(
         "dashboard.html",
@@ -331,15 +328,16 @@ def dashboard():
         top_uf=top_uf,
         top_municipios=top_municipios,
         grafico=grafico,
-
         total_empresas_ant=total_empresas_ant,
         total_tel_ant=total_tel_ant,
         perc_empresas=perc_empresas,
         perc_tel=perc_tel,
         data_atualizacao=data_atualizacao
     )
-    
-# 🔐 LOGIN
+
+# =========================
+# LOGIN
+# =========================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     erro = None
@@ -358,9 +356,9 @@ def login():
 
     return render_template("login.html", erro=erro)
 
-# 📝 REGISTER
-from flask import flash, redirect, url_for
-
+# =========================
+# REGISTER
+# =========================
 @app.route("/register", methods=["GET", "POST"])
 def register():
     sucesso = False
@@ -394,15 +392,18 @@ def register():
 
     return render_template("register.html", sucesso=sucesso, erro=erro)
 
-# 🚪 LOGOUT
+# =========================
+# LOGOUT
+# =========================
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect("/login")
 
-
-# 📥 DOWNLOAD
+# =========================
+# DOWNLOAD
+# =========================
 @app.route("/download")
 @login_required
 def download():
@@ -411,5 +412,8 @@ def download():
 
     return send_file("resultado.csv", as_attachment=True)
 
+# =========================
+# RUN LOCAL
+# =========================
 if __name__ == "__main__":
     app.run(debug=True)
