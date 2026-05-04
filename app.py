@@ -369,22 +369,22 @@ def register():
                 erro = "Preencha todos os campos"
 
             elif User.query.filter_by(email=email).first():
-                erro = "⚠️ Email já cadastrado"
+                erro = "Email já cadastrado"
 
             else:
-                novo_user = User(
+                novo = User(
                     email=email,
                     senha=generate_password_hash(senha)
                 )
 
-                db.session.add(novo_user)
+                db.session.add(novo)
                 db.session.commit()
 
                 sucesso = True
 
         except Exception as e:
             db.session.rollback()
-            erro = f"Erro interno: {str(e)}"
+            erro = str(e)
 
     return render_template("register.html", sucesso=sucesso, erro=erro)
 
