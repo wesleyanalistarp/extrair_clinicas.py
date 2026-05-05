@@ -131,24 +131,44 @@
         </div>
     </div>
 
-<div>
-    <h4>Top Cidades</h4>
-    <canvas id="graficoCidades"></canvas>
+    <div class="row">
+
+    <!-- STATUS -->
+    <div class="col-md-6 mb-4">
+        <div class="card p-3 shadow-sm h-100">
+            <h5>🎯 Status dos Leads</h5>
+            <canvas id="graficoStatus"></canvas>
+        </div>
+    </div>
+
+    <!-- PRODUTIVIDADE -->
+    <div class="col-md-6 mb-4">
+        <div class="card p-3 shadow-sm h-100">
+            <h5>📈 Produtividade (7 dias)</h5>
+            <canvas id="graficoProd"></canvas>
+        </div>
+    </div>
+
 </div>
 
-<div>
-    <h4>Evolução de Leads</h4>
-    <canvas id="graficoEvolucao"></canvas>
-</div>
+<div class="row">
 
-<div>
-    <h4>Qualidade dos Leads</h4>
-    <canvas id="graficoQualidade"></canvas>
-</div>
+    <!-- CONVERSÃO -->
+    <div class="col-md-4 mb-4">
+        <div class="card p-3 shadow-sm text-center h-100">
+            <h5>🎯 Conversão</h5>
+            <div id="taxaBox" style="font-size: 36px; font-weight: bold;"></div>
+        </div>
+    </div>
 
-<div>
-    <h4>Status</h4>
-    <canvas id="graficoStatus"></canvas>
+    <!-- FECHAMENTOS -->
+    <div class="col-md-8 mb-4">
+        <div class="card p-3 shadow-sm h-100">
+            <h5>🔥 Cidades que mais fecham</h5>
+            <canvas id="graficoFechados"></canvas>
+        </div>
+    </div>
+
 </div>
 
 <div class="mt-3 text-muted" style="font-size:12px;">
@@ -158,23 +178,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    const dadosGrafico = JSON.parse('{{ grafico | tojson | safe }}');
-
-    new Chart(document.getElementById("graficoCidades"), {
-        type: "line",
-        data: {
-            labels: dadosGrafico.map(i => i[0]),
-            datasets: [{
-                data: dadosGrafico.map(i => i[1]),
-                borderColor: "#3b82f6",
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            plugins: { legend: { display: false } }
-        }
-    });
+    // 🔢 ANIMAÇÃO DOS KPIs
     function animarNumero(el, valorFinal) {
         let atual = 0;
         let incremento = Math.ceil(valorFinal / 50);
@@ -191,70 +195,98 @@
         }, 20);
     }
 
-    // pega todos os cards
     document.querySelectorAll(".card-value").forEach(el => {
-
-        // pega número removendo pontos
         let valor = el.innerText.replace(/\./g, "").trim();
 
         if (!isNaN(valor)) {
             el.innerText = "0";
             animarNumero(el, parseInt(valor));
         }
-
     });
+
+    // 🚀 DASHBOARD OPERACIONAL
+    fetch("/api/dashboard_operacional")
+        .then(res => res.json())
+        .then(data => {
+
+            // 📈 PRODUTIVIDADE
+            const elProd = document.getElementById("graficoProd");
+            if (elProd) {
+                new Chart(elProd, {
+                    type: "line",
+                    data: {
+                        labels: data.prod_dias,
+                        datasets: [{
+                            label: "Leads trabalhados",
+                            data: data.prod_total,
+                            borderWidth: 3,
+                            tension: 0.3
+                        }]
+                    }
+                });
+            }
+
+            // 🎯 CONVERSÃO
+            const taxaBox = document.getElementById("taxaBox");
+            if (taxaBox) {
+                taxaBox.innerText = data.taxa_conversao + "%";
+            }
+
+            // 🔥 CIDADES QUE MAIS FECHAM
+            const elFechados = document.getElementById("graficoFechados");
+            if (elFechados) {
+                new Chart(elFechados, {
+                    type: "bar",
+                    data: {
+                        labels: data.cidades_fechado,
+                        datasets: [{
+                            label: "Fechamentos",
+                            data: data.cidades_total
+                        }]
+                    }
+                });
+            }
+
+        });
+
+    // 🎯 STATUS (FUNIL)
     fetch("/api/dashboard")
-.then(res => res.json())
-.then(data => {
+        .then(res => res.json())
+        .then(data => {
 
-    // 📊 TOP CIDADES
-    new Chart(document.getElementById("graficoCidades"), {
-        type: "bar",
-        data: {
-            labels: data.cidades,
-            datasets: [{
-                label: "Empresas",
-                data: data.cidades_total
-            }]
-        }
-    });
+            const status = data.status || {};
+            const labels = Object.keys(status);
+            const valores = Object.values(status);
 
-    // 📈 EVOLUÇÃO
-    new Chart(document.getElementById("graficoEvolucao"), {
-        type: "line",
-        data: {
-            labels: data.meses,
-            datasets: [{
-                label: "Leads",
-                data: data.meses_total
-            }]
-        }
-    });
+            const elStatus = document.getElementById("graficoStatus");
 
-    // 📞 QUALIDADE
-    new Chart(document.getElementById("graficoQualidade"), {
-        type: "doughnut",
-        data: {
-            labels: ["Com Telefone", "Sem Telefone"],
-            datasets: [{
-                data: [data.qualidade.com_tel, data.qualidade.sem_tel]
-            }]
-        }
-    });
+            if (elStatus && valores.length > 0) {
+                new Chart(elStatus, {
+                    type: "doughnut",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: valores,
+                            backgroundColor: [
+                                "#22c55e", // fechado
+                                "#3b82f6", // ligado
+                                "#ef4444", // não atendeu
+                                "#f59e0b", // novo
+                                "#14b8a6"  // pendente
+                            ]
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: {
+                                position: "bottom"
+                            }
+                        }
+                    }
+                });
+            }
 
-    // 🎯 STATUS
-    new Chart(document.getElementById("graficoStatus"), {
-        type: "pie",
-        data: {
-            labels: Object.keys(data.status),
-            datasets: [{
-                data: Object.values(data.status)
-            }]
-        }
-    });
-
-});
+        });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 {% endblock %}

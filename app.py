@@ -486,7 +486,7 @@ def dashboard_api():
         LIMIT 10
     """)).fetchall()
 
-    # 📈 EVOLUÇÃO (por mês)
+    # 📈 EVOLUÇÃO (por mês) - FORMATADA
     evolucao = db.session.execute(text("""
         SELECT SUBSTRING(data_inicio,1,6) AS mes, COUNT(*) 
         FROM empresas
@@ -511,151 +511,91 @@ def dashboard_api():
     """)).fetchall()
 
     return jsonify({
-        "cidades": [str(x[0]) for x in top_cidades],
+
+        # 🔥 CIDADES COM NOME (corrigido)
+        "cidades": [
+            mapa_municipios.get(str(x[0]).strip(), str(x[0]))
+            for x in top_cidades
+        ],
         "cidades_total": [int(x[1]) for x in top_cidades],
 
-        "meses": [str(x[0]) for x in evolucao],
+        # 📅 EVOLUÇÃO FORMATADA (MM/AAAA)
+        "meses": [
+            f"{str(x[0])[4:6]}/{str(x[0])[0:4]}"
+            for x in evolucao
+        ],
         "meses_total": [int(x[1]) for x in evolucao],
 
+        # 📞 QUALIDADE
         "qualidade": {
             "com_tel": int(qualidade[0] or 0),
             "sem_tel": int(qualidade[1] or 0)
         },
 
+        # 🎯 STATUS
         "status": {
             str(x[0] or "novo"): int(x[1]) for x in status
         }
     })
-    # =========================
+# =========================
+# dashboard_operacional
 
-    total_empresas = safe_scalar("""
-        SELECT COUNT(*) FROM empresas
-    """)
-
-    # 🔥 CORRIGIDO: telefone → nome certo da sua tabela
-    total_com_telefone = safe_scalar("""
-        SELECT COUNT(*) FROM empresas
-        WHERE telefone IS NOT NULL AND telefone != ''
-    """)
-
-    ult_30 = safe_scalar("""
-        SELECT COUNT(*) FROM empresas
-        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '30 days', 'YYYYMMDD')
-    """)
-
-    ult_60 = safe_scalar("""
-        SELECT COUNT(*) FROM empresas
-        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYYMMDD')
-    """)
-
-    ult_90 = safe_scalar("""
-        SELECT COUNT(*) FROM empresas
-        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYYMMDD')
-    """)
-
-    # =========================
-    # TOP UF (seguro)
-    # =========================
-
+@app.route("/api/dashboard_operacional")
+@login_required
+def dashboard_operacional():
     try:
-        top_uf = safe_fetchone("""
-            SELECT uf, COUNT(*) as total
-            FROM empresas
-            GROUP BY uf
-            ORDER BY total DESC
-            LIMIT 1
-        """)
+        db.session.rollback()
     except:
-        top_uf = None
+        pass
 
-    # =========================
-    # MUNICIPIOS (sem cache)
-    # =========================
-
-    top_municipios_raw = safe_fetchall("""
-        SELECT municipio, COUNT(*) as total
+    # 📈 PRODUTIVIDADE (últimos 7 dias)
+    produtividade = db.session.execute(text("""
+        SELECT DATE(ultima_acao) as dia, COUNT(*)
         FROM empresas
-        GROUP BY municipio
-        ORDER BY total DESC
-        LIMIT 5
-    """)
+        WHERE ultima_acao IS NOT NULL
+        GROUP BY dia
+        ORDER BY dia DESC
+        LIMIT 7
+    """)).fetchall()
 
-    top_municipios = [
-        (mapa_municipios.get(str(cod).strip(), cod), total)
-        for cod, total in top_municipios_raw
-    ]
+    produtividade = list(reversed(produtividade))
 
-    grafico_raw = safe_fetchall("""
-        SELECT municipio, COUNT(*) as total
+    # 🎯 CONVERSÃO
+    conv = db.session.execute(text("""
+        SELECT
+            COUNT(*) FILTER (WHERE status = 'fechado') as fechados,
+            COUNT(*) FILTER (WHERE status = 'ligado') as ligados
         FROM empresas
+    """)).fetchone()
+
+    fechados = int(conv[0] or 0)
+    ligados = int(conv[1] or 0)
+
+    taxa = round((fechados / ligados) * 100, 2) if ligados > 0 else 0
+
+    # 🔥 TOP CIDADES (FECHAMENTO)
+    top_fechados = db.session.execute(text("""
+        SELECT municipio, COUNT(*)
+        FROM empresas
+        WHERE status = 'fechado'
         GROUP BY municipio
-        ORDER BY total DESC
+        ORDER BY COUNT(*) DESC
         LIMIT 10
-    """)
+    """)).fetchall()
 
-    grafico = [
-        (mapa_municipios.get(str(cod).strip(), cod), total)
-        for cod, total in grafico_raw
-    ]
+    return jsonify({
+        "prod_dias": [str(x[0]) for x in produtividade],
+        "prod_total": [int(x[1]) for x in produtividade],
 
-    # =========================
-    # SNAPSHOT (opcional)
-    # =========================
+        "taxa_conversao": taxa,
 
-    anterior = safe_fetchone("""
-        SELECT total_empresas, total_telefone
-        FROM dashboard_snapshot
-        ORDER BY id DESC
-        LIMIT 1 OFFSET 1
-    """)
-
-    if anterior:
-        total_empresas_ant, total_tel_ant = anterior
-    else:
-        total_empresas_ant = total_empresas
-        total_tel_ant = total_com_telefone
-
-    def calc_percentual(atual, anterior):
-        if anterior == 0:
-            return 0
-        return round(((atual - anterior) / anterior) * 100, 2)
-
-    perc_empresas = calc_percentual(total_empresas, total_empresas_ant)
-    perc_tel = calc_percentual(total_com_telefone, total_tel_ant)
-
-    # =========================
-    # DATA ATUALIZAÇÃO (seguro)
-    # =========================
-
-    row = safe_fetchone("""
-        SELECT ultima_atualizacao
-        FROM sistema_info
-        ORDER BY id DESC
-        LIMIT 1
-    """)
-
-    data_atualizacao = row[0] if row else "Não definido"
-
-    # =========================
-    # RENDER
-    # =========================
-
-    return render_template(
-        "dashboard.html",
-        total_empresas=total_empresas,
-        total_com_telefone=total_com_telefone,
-        ult_30=ult_30,
-        ult_60=ult_60,
-        ult_90=ult_90,
-        top_uf=top_uf,
-        top_municipios=top_municipios,
-        grafico=grafico,
-        total_empresas_ant=total_empresas_ant,
-        total_tel_ant=total_tel_ant,
-        perc_empresas=perc_empresas,
-        perc_tel=perc_tel,
-        data_atualizacao=data_atualizacao
-    )
+        "cidades_fechado": [
+            mapa_municipios.get(str(x[0]).strip(), str(x[0]))
+            for x in top_fechados
+        ],
+        "cidades_total": [int(x[1]) for x in top_fechados]
+    })
+# =========================
 # =========================
 # LOGIN
 # =========================
