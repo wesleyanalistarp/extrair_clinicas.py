@@ -113,17 +113,21 @@ except Exception as e:
 # BUSCA EMPRESAS
 # =========================
 def buscar_empresas(cidade, uf, palavra, data_min):
+
+    try:
+        db.session.rollback()
+    except:
+        pass
+
     query = """
     SELECT 
-        CNPJ,
-        NOME_FANTASIA,
-        UF,
-        MUNICIPIO,
-        data_inicio
-        DDD_1,
-        TELEFONE_1,
-        CORREIO_ELETRONICO,
-        CNAE_FISCAL_PRINCIPAL
+        cnpj,
+        nome,
+        uf,
+        municipio,
+        data_inicio,
+        telefone,
+        telefone2
     FROM empresas
     WHERE 1=1
     """
@@ -131,44 +135,46 @@ def buscar_empresas(cidade, uf, palavra, data_min):
     params = {}
 
     if uf:
-        query += " AND UF = :uf"
+        query += " AND uf = :uf"
         params["uf"] = uf.upper()
 
     if cidade:
-        query += " AND MUNICIPIO = :cidade"
+        query += " AND municipio = :cidade"
         params["cidade"] = cidade
 
     if palavra:
-        query += " AND UPPER(NOME_FANTASIA) LIKE :palavra"
+        query += " AND UPPER(nome) LIKE :palavra"
         params["palavra"] = f"%{palavra.upper()}%"
 
     if data_min:
         query += " AND data_inicio >= :data_min"
         params["data_min"] = data_min.replace("-", "")
 
+    # 🔥 filtro de contato (adaptado pro seu banco)
     query += """
     AND (
-        (TELEFONE_1 IS NOT NULL AND TELEFONE_1 != '')
+        (telefone IS NOT NULL AND telefone != '')
         OR
-        (CORREIO_ELETRONICO IS NOT NULL AND CORREIO_ELETRONICO != '')
+        (telefone2 IS NOT NULL AND telefone2 != '')
     )
-    LIMIT 200
     """
 
-    result = db.session.execute(text(query), params)
-    rows = result.fetchall()
+    # 🔥 ESSENCIAL pra não travar com 70 milhões
+    query += " ORDER BY nome LIMIT 100"
+
+    try:
+        result = db.session.execute(text(query), params)
+        rows = result.fetchall()
+
+    except Exception as e:
+        print("ERRO BUSCA:", e)
+        db.session.rollback()
+        return []
 
     dados = []
 
     for row in rows:
-        ddd = row[5] or ""
-        tel = row[6] or ""
-
-        telefone = ""
-        if ddd and tel:
-            telefone = f"{ddd}{tel}"
-        elif tel:
-            telefone = tel
+        telefone = row[5] or row[6] or ""
 
         dados.append({
             "cnpj": row[0],
@@ -177,12 +183,11 @@ def buscar_empresas(cidade, uf, palavra, data_min):
             "municipio": row[3],
             "data": row[4],
             "telefone": telefone,
-            "email": row[7],
-            "cnae": row[8]
+            "email": "",   # não existe na sua tabela atual
+            "cnae": ""     # não existe na sua tabela atual
         })
 
     return dados
-
 # =========================
 # HOME
 # =========================
