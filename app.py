@@ -119,7 +119,7 @@ def buscar_empresas(cidade, uf, palavra, data_min):
         NOME_FANTASIA,
         UF,
         MUNICIPIO,
-        DATA_INICIO_ATIVIDADE,
+        data_inicio
         DDD_1,
         TELEFONE_1,
         CORREIO_ELETRONICO,
@@ -143,7 +143,7 @@ def buscar_empresas(cidade, uf, palavra, data_min):
         params["palavra"] = f"%{palavra.upper()}%"
 
     if data_min:
-        query += " AND DATA_INICIO_ATIVIDADE >= :data_min"
+        query += " AND data_inicio >= :data_min"
         params["data_min"] = data_min.replace("-", "")
 
     query += """
@@ -228,59 +228,96 @@ def index():
 # =========================
 # DASHBOARD
 # =========================
+from sqlalchemy import text
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
+
+    # 🔥 IMPORTANTE: limpa transação quebrada
+    try:
+        db.session.rollback()
+    except:
+        pass
 
     def safe_scalar(query):
         try:
             return db.session.execute(text(query)).scalar() or 0
         except Exception as e:
-            print("ERRO:", e)
+            print("ERRO scalar:", e)
+            db.session.rollback()
             return 0
 
     def safe_fetchone(query):
         try:
             return db.session.execute(text(query)).fetchone()
         except Exception as e:
-            print("ERRO:", e)
+            print("ERRO fetchone:", e)
+            db.session.rollback()
             return None
 
     def safe_fetchall(query):
         try:
             return db.session.execute(text(query)).fetchall()
         except Exception as e:
-            print("ERRO:", e)
+            print("ERRO fetchall:", e)
+            db.session.rollback()
             return []
 
-    total_empresas = safe_scalar("SELECT COUNT(*) FROM empresas")
+    # =========================
+    # DADOS PRINCIPAIS
+    # =========================
 
+    total_empresas = safe_scalar("""
+        SELECT COUNT(*) FROM empresas
+    """)
+
+    # 🔥 CORRIGIDO: telefone → nome certo da sua tabela
     total_com_telefone = safe_scalar("""
         SELECT COUNT(*) FROM empresas
-        WHERE TELEFONE_1 IS NOT NULL AND TELEFONE_1 != ''
+        WHERE telefone IS NOT NULL AND telefone != ''
     """)
 
     ult_30 = safe_scalar("""
         SELECT COUNT(*) FROM empresas
-        WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '30 days', 'YYYYMMDD')
+        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '30 days', 'YYYYMMDD')
     """)
 
     ult_60 = safe_scalar("""
         SELECT COUNT(*) FROM empresas
-        WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYYMMDD')
+        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYYMMDD')
     """)
 
     ult_90 = safe_scalar("""
         SELECT COUNT(*) FROM empresas
-        WHERE DATA_INICIO_ATIVIDADE >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYYMMDD')
+        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYYMMDD')
     """)
 
-    top_uf = safe_fetchone("""
-        SELECT UF, total FROM cache_uf ORDER BY total DESC LIMIT 1
-    """)
+    # =========================
+    # TOP UF (seguro)
+    # =========================
+
+    try:
+        top_uf = safe_fetchone("""
+            SELECT uf, COUNT(*) as total
+            FROM empresas
+            GROUP BY uf
+            ORDER BY total DESC
+            LIMIT 1
+        """)
+    except:
+        top_uf = None
+
+    # =========================
+    # MUNICIPIOS (sem cache)
+    # =========================
 
     top_municipios_raw = safe_fetchall("""
-        SELECT MUNICIPIO, total FROM cache_municipios ORDER BY total DESC LIMIT 5
+        SELECT municipio, COUNT(*) as total
+        FROM empresas
+        GROUP BY municipio
+        ORDER BY total DESC
+        LIMIT 5
     """)
 
     top_municipios = [
@@ -289,13 +326,21 @@ def dashboard():
     ]
 
     grafico_raw = safe_fetchall("""
-        SELECT MUNICIPIO, total FROM cache_municipios ORDER BY total DESC LIMIT 10
+        SELECT municipio, COUNT(*) as total
+        FROM empresas
+        GROUP BY municipio
+        ORDER BY total DESC
+        LIMIT 10
     """)
 
     grafico = [
         (mapa_municipios.get(str(cod).strip(), cod), total)
         for cod, total in grafico_raw
     ]
+
+    # =========================
+    # SNAPSHOT (opcional)
+    # =========================
 
     anterior = safe_fetchone("""
         SELECT total_empresas, total_telefone
@@ -318,6 +363,10 @@ def dashboard():
     perc_empresas = calc_percentual(total_empresas, total_empresas_ant)
     perc_tel = calc_percentual(total_com_telefone, total_tel_ant)
 
+    # =========================
+    # DATA ATUALIZAÇÃO (seguro)
+    # =========================
+
     row = safe_fetchone("""
         SELECT ultima_atualizacao
         FROM sistema_info
@@ -326,6 +375,10 @@ def dashboard():
     """)
 
     data_atualizacao = row[0] if row else "Não definido"
+
+    # =========================
+    # RENDER
+    # =========================
 
     return render_template(
         "dashboard.html",
