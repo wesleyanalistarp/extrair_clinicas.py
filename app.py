@@ -310,38 +310,219 @@ from sqlalchemy import text
 @login_required
 def dashboard():
 
-    # 🔥 IMPORTANTE: limpa transação quebrada
-    try:
-        db.session.rollback()
-    except:
-        pass
-
     def safe_scalar(query):
         try:
             return db.session.execute(text(query)).scalar() or 0
-        except Exception as e:
-            print("ERRO scalar:", e)
+        except:
             db.session.rollback()
             return 0
 
     def safe_fetchone(query):
         try:
             return db.session.execute(text(query)).fetchone()
-        except Exception as e:
-            print("ERRO fetchone:", e)
+        except:
             db.session.rollback()
             return None
 
     def safe_fetchall(query):
         try:
             return db.session.execute(text(query)).fetchall()
-        except Exception as e:
-            print("ERRO fetchall:", e)
+        except:
             db.session.rollback()
             return []
 
     # =========================
+    # KPIs
+    # =========================
+
+    total_empresas = safe_scalar("SELECT COUNT(*) FROM empresas")
+
+    total_com_telefone = safe_scalar("""
+        SELECT COUNT(*) FROM empresas
+        WHERE telefone IS NOT NULL AND telefone != ''
+    """)
+
+    ult_30 = safe_scalar("""
+        SELECT COUNT(*) FROM empresas
+        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '30 days', 'YYYYMMDD')
+    """)
+
+    ult_60 = safe_scalar("""
+        SELECT COUNT(*) FROM empresas
+        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '60 days', 'YYYYMMDD')
+    """)
+
+    ult_90 = safe_scalar("""
+        SELECT COUNT(*) FROM empresas
+        WHERE data_inicio >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYYMMDD')
+    """)
+
+    # =========================
+    # TOP UF
+    # =========================
+
+    top_uf = safe_fetchone("""
+        SELECT uf, COUNT(*) as total
+        FROM empresas
+        GROUP BY uf
+        ORDER BY total DESC
+        LIMIT 1
+    """)
+
+    # =========================
+    # TOP MUNICÍPIOS
+    # =========================
+
+    top_municipios = safe_fetchall("""
+        SELECT municipio, COUNT(*) as total
+        FROM empresas
+        GROUP BY municipio
+        ORDER BY total DESC
+        LIMIT 5
+    """)
+
+    # =========================
+    # SNAPSHOT (comparação)
+    # =========================
+
+    anterior = safe_fetchone("""
+        SELECT total_empresas, total_telefone
+        FROM dashboard_snapshot
+        ORDER BY id DESC
+        LIMIT 1 OFFSET 1
+    """)
+
+    if anterior:
+        total_empresas_ant, total_tel_ant = anterior
+    else:
+        total_empresas_ant = total_empresas
+        total_tel_ant = total_com_telefone
+
+    def calc_percentual(atual, anterior):
+        if anterior == 0:
+            return 0
+        return round(((atual - anterior) / anterior) * 100, 2)
+
+    perc_empresas = calc_percentual(total_empresas, total_empresas_ant)
+    perc_tel = calc_percentual(total_com_telefone, total_tel_ant)
+
+    # =========================
+    # DATA ATUALIZAÇÃO
+    # =========================
+
+    row = safe_fetchone("""
+        SELECT ultima_atualizacao
+        FROM sistema_info
+        ORDER BY id DESC
+        LIMIT 1
+    """)
+
+    data_atualizacao = row[0] if row else "Não definido"
+
+    # =========================
+    # RENDER
+    # =========================
+    grafico_raw = safe_fetchall("""
+    SELECT municipio, COUNT(*) as total
+    FROM empresas
+    GROUP BY municipio
+    ORDER BY total DESC
+    LIMIT 10
+    """)
+
+    grafico_raw = safe_fetchall("""
+    SELECT municipio, COUNT(*) as total
+    FROM empresas
+    GROUP BY municipio
+    ORDER BY total DESC
+    LIMIT 10
+    """)
+
+    grafico = [
+    (mapa_municipios.get(str(cod).strip(), str(cod)), int(total))
+    for cod, total in grafico_raw
+    ]
+
+    # 👇 MESMO NÍVEL (sem espaço extra)
+    return render_template(
+        "dashboard.html",
+        total_empresas=total_empresas,
+        total_com_telefone=total_com_telefone,
+        ult_30=ult_30,
+        ult_60=ult_60,
+        ult_90=ult_90,
+        top_uf=top_uf,
+        top_municipios=top_municipios,
+        total_empresas_ant=total_empresas_ant,
+        total_tel_ant=total_tel_ant,
+        perc_empresas=perc_empresas,
+        perc_tel=perc_tel,
+        data_atualizacao=data_atualizacao,
+        grafico=grafico
+    )
+    # =========================
     # DADOS PRINCIPAIS
+    # =========================
+    
+        # =========================
+    # api dasboard
+@app.route("/api/dashboard")
+@login_required
+def dashboard_api():
+    try:
+        db.session.rollback()
+    except:
+        pass
+
+    # 📊 TOP CIDADES
+    top_cidades = db.session.execute(text("""
+        SELECT municipio, COUNT(*) as total
+        FROM empresas
+        GROUP BY municipio
+        ORDER BY total DESC
+        LIMIT 10
+    """)).fetchall()
+
+    # 📈 EVOLUÇÃO (por mês)
+    evolucao = db.session.execute(text("""
+        SELECT SUBSTRING(data_inicio,1,6) AS mes, COUNT(*) 
+        FROM empresas
+        GROUP BY mes
+        ORDER BY mes
+        LIMIT 12
+    """)).fetchall()
+
+    # 📞 QUALIDADE LEADS
+    qualidade = db.session.execute(text("""
+        SELECT
+            COUNT(*) FILTER (WHERE telefone IS NOT NULL AND telefone != '') AS com_tel,
+            COUNT(*) FILTER (WHERE telefone IS NULL OR telefone = '') AS sem_tel
+        FROM empresas
+    """)).fetchone()
+
+    # 🎯 STATUS
+    status = db.session.execute(text("""
+        SELECT status, COUNT(*) 
+        FROM empresas
+        GROUP BY status
+    """)).fetchall()
+
+    return jsonify({
+        "cidades": [str(x[0]) for x in top_cidades],
+        "cidades_total": [int(x[1]) for x in top_cidades],
+
+        "meses": [str(x[0]) for x in evolucao],
+        "meses_total": [int(x[1]) for x in evolucao],
+
+        "qualidade": {
+            "com_tel": int(qualidade[0] or 0),
+            "sem_tel": int(qualidade[1] or 0)
+        },
+
+        "status": {
+            str(x[0] or "novo"): int(x[1]) for x in status
+        }
+    })
     # =========================
 
     total_empresas = safe_scalar("""

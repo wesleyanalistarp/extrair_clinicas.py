@@ -131,25 +131,24 @@
         </div>
     </div>
 
-    <div class="col-md-6 mb-4">
-        <div class="card shadow-sm p-4">
-            <h6>🏙️ Top Cidades</h6>
-
-            {% for m in top_municipios %}
-            <div class="d-flex justify-content-between py-1">
-                <span>{{ m[0] }}</span>
-                <strong>{{ m[1] | numero_br }}</strong>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
+<div>
+    <h4>Top Cidades</h4>
+    <canvas id="graficoCidades"></canvas>
 </div>
 
-<!-- GRÁFICO -->
-<div class="card shadow-sm p-4 mt-3">
-    <h5>📈 Crescimento por cidade</h5>
-    <canvas id="graficoCidades"></canvas>
+<div>
+    <h4>Evolução de Leads</h4>
+    <canvas id="graficoEvolucao"></canvas>
+</div>
+
+<div>
+    <h4>Qualidade dos Leads</h4>
+    <canvas id="graficoQualidade"></canvas>
+</div>
+
+<div>
+    <h4>Status</h4>
+    <canvas id="graficoStatus"></canvas>
 </div>
 
 <div class="mt-3 text-muted" style="font-size:12px;">
@@ -204,6 +203,58 @@
         }
 
     });
+    fetch("/api/dashboard")
+.then(res => res.json())
+.then(data => {
+
+    // 📊 TOP CIDADES
+    new Chart(document.getElementById("graficoCidades"), {
+        type: "bar",
+        data: {
+            labels: data.cidades,
+            datasets: [{
+                label: "Empresas",
+                data: data.cidades_total
+            }]
+        }
+    });
+
+    // 📈 EVOLUÇÃO
+    new Chart(document.getElementById("graficoEvolucao"), {
+        type: "line",
+        data: {
+            labels: data.meses,
+            datasets: [{
+                label: "Leads",
+                data: data.meses_total
+            }]
+        }
+    });
+
+    // 📞 QUALIDADE
+    new Chart(document.getElementById("graficoQualidade"), {
+        type: "doughnut",
+        data: {
+            labels: ["Com Telefone", "Sem Telefone"],
+            datasets: [{
+                data: [data.qualidade.com_tel, data.qualidade.sem_tel]
+            }]
+        }
+    });
+
+    // 🎯 STATUS
+    new Chart(document.getElementById("graficoStatus"), {
+        type: "pie",
+        data: {
+            labels: Object.keys(data.status),
+            datasets: [{
+                data: Object.values(data.status)
+            }]
+        }
+    });
+
+});
 </script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 {% endblock %}
