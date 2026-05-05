@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from flask import Flask, render_template, request, redirect, send_file, url_for
+from flask import Flask, render_template, request, jsonify, redirect, send_file, url_for
 from flask_login import (
     LoginManager, UserMixin,
     login_user, login_required,
@@ -10,6 +10,9 @@ from flask_login import (
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
+from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 # =========================
 # APP
@@ -112,7 +115,9 @@ except Exception as e:
 # =========================
 # BUSCA EMPRESAS
 # =========================
-def buscar_empresas(cidade, uf, palavra, data_min):
+from sqlalchemy import text
+
+def buscar_empresas(cidade, uf, palavra, data_min, status):
 
     try:
         db.session.rollback()
@@ -127,7 +132,9 @@ def buscar_empresas(cidade, uf, palavra, data_min):
         municipio,
         data_inicio,
         telefone,
-        telefone2
+        telefone2,
+        status,
+        observacao
     FROM empresas
     WHERE 1=1
     """
@@ -150,7 +157,15 @@ def buscar_empresas(cidade, uf, palavra, data_min):
         query += " AND data_inicio >= :data_min"
         params["data_min"] = data_min.replace("-", "")
 
-    # 🔥 filtro de contato (adaptado pro seu banco)
+    # 🔥 FILTRO DE STATUS
+    if status:
+        if status == "novo":
+            query += " AND (status IS NULL OR status = '')"
+        else:
+            query += " AND status = :status"
+            params["status"] = status
+
+    # 🔥 FILTRO DE CONTATO
     query += """
     AND (
         (telefone IS NOT NULL AND telefone != '')
@@ -159,7 +174,6 @@ def buscar_empresas(cidade, uf, palavra, data_min):
     )
     """
 
-    # 🔥 ESSENCIAL pra não travar com 70 milhões
     query += " ORDER BY nome LIMIT 100"
 
     try:
@@ -174,20 +188,76 @@ def buscar_empresas(cidade, uf, palavra, data_min):
     dados = []
 
     for row in rows:
-        telefone = row[5] or row[6] or ""
+
+        # 📅 FORMATA DATA (YYYYMMDD → DD/MM/YYYY)
+        data_raw = str(row[4]) if row[4] else ""
+        data_formatada = ""
+
+        if len(data_raw) == 8:
+            data_formatada = f"{data_raw[6:8]}/{data_raw[4:6]}/{data_raw[0:4]}"
+
+        # 📞 FORMATA TELEFONE
+        tel = str(row[5] or row[6] or "").replace(" ", "").replace("-", "")
+
+        telefone_formatado = ""
+        if len(tel) == 11:
+            telefone_formatado = f"({tel[:2]}) {tel[2:7]}-{tel[7:]}"
+        elif len(tel) == 10:
+            telefone_formatado = f"({tel[:2]}) {tel[2:6]}-{tel[6:]}"
+        else:
+            telefone_formatado = tel
 
         dados.append({
             "cnpj": row[0],
             "nome": row[1],
             "uf": row[2],
             "municipio": row[3],
-            "data": row[4],
-            "telefone": telefone,
-            "email": "",   # não existe na sua tabela atual
-            "cnae": ""     # não existe na sua tabela atual
+            "data": data_formatada,
+            "telefone": telefone_formatado,
+            "status": row[7] or "",
+            "observacao": row[8] or "",
+            "email": "",
+            "cnae": ""
         })
 
     return dados
+
+    #===============
+    #ROTA ATUALIZAR STATUS
+@app.route("/atualizar_status", methods=["POST"])
+@login_required
+def atualizar_status():
+
+    try:
+        db.session.rollback()
+    except:
+        pass
+
+    cnpj = request.json.get("cnpj")
+    status = request.json.get("status")
+    observacao = request.json.get("observacao", "")
+
+    try:
+        db.session.execute(text("""
+            UPDATE empresas
+            SET status = :status,
+                ultima_acao = :data,
+                observacao = :obs
+            WHERE cnpj = :cnpj
+        """), {
+            "status": status,
+            "data": datetime.now(),
+            "obs": observacao,
+            "cnpj": cnpj
+        })
+
+        db.session.commit()
+        return jsonify({"success": True})
+
+    except Exception as e:
+        print("ERRO STATUS:", e)
+        db.session.rollback()
+        return jsonify({"success": False})
 # =========================
 # HOME
 # =========================
@@ -206,8 +276,9 @@ def index():
         uf = request.form.get("uf")
         palavra = request.form.get("palavra")
         data = request.form.get("data")
+        status = request.form.get("status")
 
-        dados = buscar_empresas(cidade, uf, palavra, data)
+        dados = buscar_empresas(cidade, uf, palavra, data, status)
 
         dados_formatados = []
 
@@ -220,10 +291,10 @@ def index():
                 "nome": row["nome"] or "Sem nome",
                 "uf": row["uf"],
                 "municipio": nome_municipio,
-                "data": row["data"],
-                "telefone": row["telefone"],
-                "email": row["email"],
-                "cnae": row["cnae"]
+                "data": row["data"],              # ✅ já vem formatado
+                "telefone": row["telefone"],      # ✅ já vem formatado
+                "status": row["status"],
+                "observacao": row["observacao"]
             })
 
         return render_template("resultados.html", dados=dados_formatados)

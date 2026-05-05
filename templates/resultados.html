@@ -15,8 +15,34 @@
             <a href="/download" class="btn btn-success">⬇ Exportar CSV</a>
         </div>
     </div>
+    <div class="mb-3 d-flex gap-2 flex-wrap">
 
-    <!-- SEM DADOS -->
+        <button onclick="filtrarStatus('todos')" class="btn btn-outline-secondary btn-sm">
+            Todos
+        </button>
+
+        <button onclick="filtrarStatus('novo')" class="btn btn-outline-dark btn-sm">
+            Novos
+        </button>
+
+        <button onclick="filtrarStatus('ligado')" class="btn btn-outline-primary btn-sm">
+            Ligados
+        </button>
+
+        <button onclick="filtrarStatus('pendente')" class="btn btn-outline-warning btn-sm">
+            Pendentes
+        </button>
+
+        <button onclick="filtrarStatus('nao_atendeu')" class="btn btn-outline-danger btn-sm">
+            Não atendeu
+        </button>
+
+        <button onclick="filtrarStatus('fechado')" class="btn btn-outline-success btn-sm">
+            Fechados
+        </button>
+
+    </div>
+
     {% if not dados %}
     <div class="text-center py-5">
         <h5 class="fw-semibold">📭 Sem dados nessa data</h5>
@@ -27,7 +53,6 @@
     </div>
     {% else %}
 
-    <!-- TABELA -->
     <div class="table-responsive">
         <table class="table align-middle table-hover">
 
@@ -38,6 +63,7 @@
                     <th>Local</th>
                     <th>Data</th>
                     <th>Contato</th>
+                    <th>Status</th> <!-- NOVO -->
                     <th>Ação</th>
                 </tr>
             </thead>
@@ -46,92 +72,53 @@
                 {% for item in dados %}
                 <tr>
 
-                    <!-- CNPJ -->
-                    <td class="fw-bold">{{ item.cnpj }}</td>
+                    <td>{{ item.cnpj }}</td>
 
-                    <!-- EMPRESA -->
+                    <td>{{ item.nome }}</td>
+
+                    <td>{{ item.municipio }}</td>
+
+                    <td>{{ item.data }}</td>
+
+                    <td>{{ item.telefone }}</td>
+
                     <td>
-                        <div class="fw-semibold">{{ item.nome }}</div>
-
-                        {% if item.cnae %}
-                        <small class="text-muted">
-                            🏷 CNAE: {{ item.cnae }}
-                        </small>
+                        {% if item.status == 'fechado' %}
+                        <span class="badge bg-success">Fechado</span>
+                        {% elif item.status == 'ligado' %}
+                        <span class="badge bg-primary">Ligou</span>
+                        {% elif item.status == 'nao_atendeu' %}
+                        <span class="badge bg-danger">Não atendeu</span>
+                        {% elif item.status == 'pendente' %}
+                        <span class="badge bg-warning text-dark">Pendente</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Novo</span>
                         {% endif %}
                     </td>
 
-                    <!-- LOCAL -->
                     <td>
-                        <span class="badge bg-light text-dark">
-                            {{ item.uf }} - {{ item.municipio }}
-                        </span>
-                    </td>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;">
 
-                    <!-- DATA -->
-                    <td>{{ item.data | data_br }}</td>
+                            <button onclick="marcar('{{ item.cnpj }}','ligado')"
+                                class="btn btn-sm btn-outline-primary">📞</button>
 
-                    <!-- CONTATO (TRATADO) -->
-                    <td>
-                        {% if item.telefone and item.telefone != '0' %}
-                            {% set telefones = item.telefone.split(',') %}
-                            {% set tel_principal = telefones[0].strip() %}
+                            <button onclick="marcar('{{ item.cnpj }}','fechado')"
+                                class="btn btn-sm btn-outline-success">✅</button>
 
-                            {% set tel_limpo = tel_principal
-                                | replace('(','')
-                                | replace(')','')
-                                | replace(' ','')
-                                | replace('-','')
-                            %}
+                            <button onclick="marcar('{{ item.cnpj }}','nao_atendeu')"
+                                class="btn btn-sm btn-outline-danger">❌</button>
 
-                            {% if tel_limpo|length >= 8 %}
-                                <div class="fw-semibold">
-                                    {{ tel_principal }}
-                                </div>
+                            <button onclick="marcar('{{ item.cnpj }}','pendente')"
+                                class="btn btn-sm btn-outline-warning">⏳</button>
 
-                                {% if telefones|length > 1 %}
-                                    <small class="text-muted">
-                                        +{{ telefones|length - 1 }} contato(s)
-                                    </small>
-                                {% endif %}
-                            {% else %}
-                                <span class="text-muted">Telefone inválido</span>
+                            {% if item.observacao %}
+                            <button onclick="verObs('{{ item.observacao }}')" class="btn btn-sm btn-dark"
+                                style="grid-column: span 2;">
+                                📝
+                            </button>
                             {% endif %}
 
-                        {% else %}
-                            <span class="text-muted">Sem telefone</span>
-                        {% endif %}
-
-                        {% if item.email %}
-                            <small class="text-muted d-block">
-                                {{ item.email }}
-                            </small>
-                        {% endif %}
-                    </td>
-
-                    <!-- AÇÃO (WHATSAPP VALIDADO) -->
-                    <td>
-                        {% if item.telefone and item.telefone != '0' %}
-                            {% set tel = item.telefone.split(',')[0].strip() %}
-
-                            {% set tel_limpo = tel
-                                | replace('(','')
-                                | replace(')','')
-                                | replace(' ','')
-                                | replace('-','')
-                            %}
-
-                            {% if tel_limpo|length >= 8 %}
-                                <a target="_blank"
-                                   href="https://wa.me/55{{ tel_limpo }}"
-                                   class="btn btn-success btn-sm">
-                                    💬 WhatsApp
-                                </a>
-                            {% else %}
-                                <span class="text-muted">Inválido</span>
-                            {% endif %}
-                        {% else %}
-                            <span class="text-muted">Sem contato</span>
-                        {% endif %}
+                        </div>
                     </td>
 
                 </tr>
@@ -144,5 +131,51 @@
     {% endif %}
 
 </div>
+
+<script>
+    function marcar(cnpj, status) {
+
+        let observacao = prompt("Observação (opcional):");
+
+        fetch("/atualizar_status", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                cnpj: cnpj,
+                status: status,
+                observacao: observacao || ""
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert("Erro ao salvar");
+                }
+            });
+    }
+
+    function verObs(texto) {
+        alert(texto);
+    }
+
+    function filtrarStatus(status) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/buscar";
+
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "status";
+        input.value = status;
+
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
 
 {% endblock %}
