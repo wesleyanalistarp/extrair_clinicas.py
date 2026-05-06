@@ -103,6 +103,67 @@ def favicon():
 # =========================
 # MUNICIPIOS (PROTEGIDO)
 # =========================
+# =========================
+# DADOS DA EMPRESAS
+@app.route("/empresa/<cnpj>")
+@login_required
+def empresa_detalhe(cnpj):
+
+    empresa = db.session.execute(text("""
+        SELECT
+            cnpj,
+            razao_social,
+            telefone,
+            uf,
+            municipio,
+            cep,
+            logradouro,
+            numero,
+            bairro,
+            email,
+            cnae_principal,
+            porte_empresa,
+            situacao_cadastral
+        FROM empresas_detalhes
+        WHERE cnpj = :cnpj
+        LIMIT 1
+    """), {"cnpj": cnpj}).fetchone()
+
+    # 🔥 se não encontrar
+    if not empresa:
+
+        return jsonify({
+            "cnpj": cnpj,
+            "nome": "Dados não importados",
+            "telefone": "",
+            "uf": "",
+            "municipio": "",
+            "cep": "",
+            "logradouro": "",
+            "numero": "",
+            "bairro": "",
+            "email": "",
+            "cnae": "",
+            "porte": "",
+            "situacao": ""
+        })
+
+    return jsonify({
+        "cnpj": empresa[0],
+        "nome": empresa[1],
+        "telefone": empresa[2],
+        "uf": empresa[3],
+        "municipio": empresa[4],
+        "cep": empresa[5],
+        "logradouro": empresa[6],
+        "numero": empresa[7],
+        "bairro": empresa[8],
+        "email": empresa[9],
+        "cnae": empresa[10],
+        "porte": empresa[11],
+        "situacao": empresa[12]
+    })
+# =========================
 mapa_municipios = {}
 
 try:

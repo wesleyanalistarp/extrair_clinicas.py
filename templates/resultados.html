@@ -118,6 +118,10 @@
                             <button onclick="marcar('{{ item.cnpj }}','pendente')"
                                 class="btn btn-sm btn-outline-warning">⏳</button>
 
+                            <button onclick="abrirEmpresa('{{ item.cnpj }}')" class="btn btn-dark btn-sm">
+                                👁️
+                            </button>
+
                             {% if item.observacao %}
                             <button onclick="verObs('{{ item.observacao }}')" class="btn btn-sm btn-dark"
                                 style="grid-column: span 2;">
@@ -138,7 +142,30 @@
     {% endif %}
 
 </div>
+    <!-- MODAL EMPRESA -->
+                <div id="empresaModalCustom">
 
+                    <div class="empresa-box">
+
+                        <div class="empresa-header">
+
+                            <h5>Dados da Empresa</h5>
+
+                            <button onclick="fecharEmpresaModal()">
+                                ✕
+                            </button>
+
+                        </div>
+
+                        <div id="empresaConteudo">
+
+                            Carregando...
+
+                        </div>
+
+                    </div>
+
+                </div>
 <script>
     function marcar(cnpj, status) {
 
@@ -157,11 +184,13 @@
         })
             .then(res => res.json())
             .then(data => {
+
                 if (data.success) {
                     location.reload();
                 } else {
                     alert("Erro ao salvar");
                 }
+
             });
     }
 
@@ -170,19 +199,142 @@
     }
 
     function filtrarStatus(status) {
+
         const form = document.createElement("form");
+
         form.method = "POST";
         form.action = "/buscar";
 
         const input = document.createElement("input");
+
         input.type = "hidden";
         input.name = "status";
         input.value = status;
 
         form.appendChild(input);
+
         document.body.appendChild(form);
+
         form.submit();
     }
+
+    async function abrirEmpresa(cnpj) {
+
+        document.getElementById("empresaModalCustom")
+            .style.display = "flex";
+
+        document.getElementById("empresaConteudo")
+            .innerHTML = `
+        
+        <div class="text-center p-5">
+
+            <div class="spinner-border text-primary"></div>
+
+            <div class="mt-3">
+                Carregando empresa...
+            </div>
+
+        </div>
+    `;
+
+        try {
+
+            const res = await fetch("/empresa/" + cnpj);
+
+            const data = await res.json();
+
+            document.getElementById("empresaConteudo")
+                .innerHTML = `
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <strong>CNPJ:</strong><br>
+                    ${data.cnpj || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Empresa:</strong><br>
+                    ${data.nome || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Telefone:</strong><br>
+                    ${data.telefone || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>E-mail:</strong><br>
+                    ${data.email || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>UF:</strong><br>
+                    ${data.uf || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Município:</strong><br>
+                    ${data.municipio || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Endereço:</strong><br>
+                    ${data.logradouro || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Número:</strong><br>
+                    ${data.numero || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Bairro:</strong><br>
+                    ${data.bairro || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>CEP:</strong><br>
+                    ${data.cep || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>CNAE:</strong><br>
+                    ${data.cnae || '-'}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <strong>Porte:</strong><br>
+                    ${data.porte || '-'}
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <strong>Situação:</strong><br>
+                    ${data.situacao || '-'}
+                </div>
+
+            </div>
+        `;
+
+        } catch (e) {
+
+            document.getElementById("empresaConteudo")
+                .innerHTML = `
+            
+            <div class="alert alert-danger">
+                Erro ao carregar empresa.
+            </div>
+        `;
+        }
+    }
+
+    function fecharEmpresaModal() {
+
+        document.getElementById("empresaModalCustom")
+            .style.display = "none";
+    }
+
+
 </script>
 
 {% endblock %}

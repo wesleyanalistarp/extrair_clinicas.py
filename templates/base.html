@@ -12,7 +12,7 @@
 
     <!-- Fonte -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    
+
     <!-- icon favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 
@@ -339,7 +339,114 @@
             transform: none !important;
             box-shadow: none !important;
         }
-      
+
+       #empresaModalCustom{
+
+    position:fixed;
+    inset:0;
+
+    background:rgba(0,0,0,0.08);
+
+    display:none;
+
+    align-items:center;
+    justify-content:center;
+
+    z-index:999999;
+
+    padding:16px;
+}
+
+.empresa-box{
+
+    background:#fff;
+
+    width:100%;
+    max-width:700px;
+
+    height:auto;
+    max-height:90vh;
+
+    overflow-y:auto;
+
+    border-radius:18px;
+
+    box-shadow:0 10px 40px rgba(0,0,0,0.12);
+
+    animation:fadeUp .2s ease;
+}
+
+.empresa-header{
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:18px;
+
+    border-bottom:1px solid #eee;
+
+    position:sticky;
+    top:0;
+
+    background:#fff;
+
+    z-index:10;
+}
+
+.empresa-header h5{
+    margin:0;
+}
+
+.empresa-header button{
+
+    border:none;
+    background:none;
+
+    font-size:24px;
+
+    cursor:pointer;
+}
+
+#empresaConteudo{
+    padding:20px;
+}
+
+@keyframes fadeUp{
+
+    from{
+        opacity:0;
+        transform:translateY(10px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+@media(max-width:768px){
+
+    #empresaModalCustom{
+        padding:0;
+        align-items:flex-end;
+    }
+
+    .empresa-box{
+
+        max-width:100%;
+
+        width:100%;
+
+        height:92vh;
+
+        max-height:92vh;
+
+        border-radius:20px 20px 0 0;
+    }
+
+}
+
     </style>
 </head>
 
@@ -440,7 +547,7 @@
             }
         }
     </script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
