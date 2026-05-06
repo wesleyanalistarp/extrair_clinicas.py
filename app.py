@@ -105,6 +105,29 @@ def favicon():
 # =========================
 # =========================
 # DADOS DA EMPRESAS
+# =========================
+# MAPA SITUAÇÃO CADASTRAL
+# =========================
+
+mapa_situacao = {
+    "01": "NULA",
+    "02": "ATIVA",
+    "03": "SUSPENSA",
+    "04": "INAPTA",
+    "08": "BAIXADA"
+}
+
+mapa_porte = {
+    "00": "NÃO INFORMADO",
+    "01": "MICRO EMPRESA",
+    "03": "EMPRESA DE PEQUENO PORTE",
+    "05": "DEMAIS"
+}
+
+# =========================
+# DADOS DA EMPRESA
+# =========================
+
 @app.route("/empresa/<cnpj>")
 @login_required
 def empresa_detalhe(cnpj):
@@ -112,7 +135,7 @@ def empresa_detalhe(cnpj):
     empresa = db.session.execute(text("""
         SELECT
             cnpj,
-            razao_social,
+            COALESCE(razao_social, nome_fantasia) AS nome,
             telefone,
             uf,
             municipio,
@@ -129,7 +152,7 @@ def empresa_detalhe(cnpj):
         LIMIT 1
     """), {"cnpj": cnpj}).fetchone()
 
-    # 🔥 se não encontrar
+    # NÃO ENCONTRADO
     if not empresa:
 
         return jsonify({
@@ -148,20 +171,59 @@ def empresa_detalhe(cnpj):
             "situacao": ""
         })
 
+    # MUNICÍPIO
+    municipio_nome = mapa_municipios.get(
+        str(empresa[4]).strip(),
+        str(empresa[4])
+    )
+
+    # SITUAÇÃO
+    situacao_nome = mapa_situacao.get(
+        str(empresa[12]).zfill(2),
+        str(empresa[12])
+    )
+
+    # PORTE
+    porte_nome = mapa_porte.get(
+        str(empresa[11]).zfill(2),
+        str(empresa[11]) if empresa[11] else "-"
+    )
+
+    # CNAE FORMATADO
+    cnae = ""
+
+    if empresa[10]:
+
+        cnae_raw = str(empresa[10])
+
+        if len(cnae_raw) >= 5:
+            cnae = f"{cnae_raw[:4]}-{cnae_raw[4:]}"
+        else:
+            cnae = cnae_raw
+
     return jsonify({
+
         "cnpj": empresa[0],
-        "nome": empresa[1],
+
+        "nome": empresa[1] if empresa[1] else "NÃO INFORMADO",
+
         "telefone": empresa[2],
         "uf": empresa[3],
-        "municipio": empresa[4],
+
+        "municipio": municipio_nome,
+
         "cep": empresa[5],
         "logradouro": empresa[6],
         "numero": empresa[7],
         "bairro": empresa[8],
+
         "email": empresa[9],
-        "cnae": empresa[10],
-        "porte": empresa[11],
-        "situacao": empresa[12]
+
+        "cnae": cnae,
+
+        "porte": porte_nome,
+
+        "situacao": situacao_nome
     })
 # =========================
 mapa_municipios = {}
