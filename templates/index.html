@@ -16,35 +16,102 @@
                 <input type="text" name="uf" class="form-control" placeholder="Ex: BA/SP/MA">
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-4 position-relative">
+
                 <label class="form-label">Município</label>
-                <select name="cidade" class="form-select">
-                    <option value="">Selecione</option>
-                    {% for codigo, nome in municipios.items() %}
-                        <option value="{{ codigo }}">{{ nome }}</option>
-                    {% endfor %}
-                </select>
-            </div>
 
-            <div class="col-md-3">
-                <label class="form-label">Palavra-chave</label>
-                <input type="text" name="palavra" class="form-control" placeholder="Ex: clínica">
-            </div>
+                <input type="text" id="municipioInput" class="form-control" placeholder="Digite a cidade..."
+                    autocomplete="off">
 
-            <div class="col-md-2">
-                <label class="form-label">Data mínima</label>
-                <input type="date" name="data" class="form-control">
-            </div>
+                <input type="hidden" name="cidade" id="cidadeCodigo">
 
-            <div class="col-md-1">
-                <button class="btn btn-primary w-100 btn-lg">
-                    🔍
-                </button>
-            </div>
+                <div id="listaMunicipios" class="lista-municipios"></div>
 
         </div>
-    </form>
+
+        <div class="col-md-3">
+            <label class="form-label">Palavra-chave</label>
+            <input type="text" name="palavra" class="form-control" placeholder="Ex: clínica">
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Data mínima</label>
+            <input type="date" name="data" class="form-control">
+        </div>
+
+        <div class="col-md-1">
+            <button class="btn btn-primary w-100 btn-lg">
+                🔍
+            </button>
+        </div>
 
 </div>
+</form>
 
+</div>
+<script>
+
+const municipios = JSON.parse('{{ municipios|tojson|safe }}');
+
+const inputMunicipio = document.getElementById("municipioInput");
+
+const listaMunicipios = document.getElementById("listaMunicipios");
+
+const cidadeCodigo = document.getElementById("cidadeCodigo");
+
+inputMunicipio.addEventListener("input", function(){
+
+    const valor = this.value.toLowerCase();
+
+    listaMunicipios.innerHTML = "";
+
+    if(valor.length < 1){
+
+        listaMunicipios.style.display = "none";
+
+        return;
+    }
+
+    const filtrados = Object.entries(municipios)
+    .filter(([codigo, nome]) =>
+        nome.toLowerCase().includes(valor)
+    );
+
+    filtrados.slice(0, 15).forEach(([codigo, nome]) => {
+
+        const item = document.createElement("div");
+
+        item.className = "item-municipio";
+
+        item.innerText = nome;
+
+            item.onclick = () => {
+
+            inputMunicipio.value = nome;
+
+            listaMunicipios.style.display = "none";
+
+            cidadeCodigo.value = codigo;
+        };
+
+        listaMunicipios.appendChild(item);
+
+    });
+
+    listaMunicipios.style.display =
+        filtrados.length ? "block" : "none";
+
+});
+
+document.addEventListener("click", function(e){
+
+    if(!listaMunicipios.contains(e.target) &&
+       e.target !== inputMunicipio){
+
+        listaMunicipios.style.display = "none";
+    }
+
+});
+
+</script>
 {% endblock %}

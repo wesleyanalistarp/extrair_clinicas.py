@@ -1,19 +1,28 @@
 import os
 import csv
 import psycopg2
+from psycopg2 import OperationalError, InterfaceError
 
 # ======================================================
 # CONEXÃO
 # ======================================================
 
-conn = psycopg2.connect(
-    host="ep-steep-dust-am57tgsu.c-5.us-east-1.aws.neon.tech",
-    dbname="neondb",
-    user="neondb_owner",
-    password="npg_KR5TGagzE1mZ",
-    sslmode="require"
-)
+def conectar():
 
+    conn = psycopg2.connect(
+        host="ep-steep-dust-am57tgsu.c-5.us-east-1.aws.neon.tech",
+        dbname="neondb",
+        user="neondb_owner",
+        password="npg_KR5TGagzE1mZ",
+        sslmode="require"
+    )
+
+    conn.autocommit = False
+
+    return conn
+
+
+conn = conectar()
 cursor = conn.cursor()
 
 # ======================================================
@@ -219,6 +228,10 @@ for pasta in os.listdir(PASTA):
 
                     lote += 1
 
+                    # ======================================================
+                    # COMMIT EM LOTES
+                    # ======================================================
+
                     if lote >= 200:
 
                         conn.commit()
@@ -229,16 +242,49 @@ for pasta in os.listdir(PASTA):
 
                         lote = 0
 
+                # ======================================================
+                # RECONEXÃO AUTOMÁTICA
+                # ======================================================
+
+                except (
+                    OperationalError,
+                    InterfaceError
+                ) as e:
+
+                    print("\nCONEXÃO CAIU:")
+                    print(e)
+
+                    try:
+                        conn.close()
+                    except:
+                        pass
+
+                    print("\nReconectando ao banco...")
+
+                    conn = conectar()
+                    cursor = conn.cursor()
+
+                    lote = 0
+
                 except Exception as e:
 
                     print("\nERRO:", e)
 
-                    conn.rollback()
+                    try:
+                        conn.rollback()
+                    except:
+                        pass
 
-conn.commit()
+# ======================================================
+# COMMIT FINAL
+# ======================================================
+
+try:
+    conn.commit()
+except:
+    pass
 
 cursor.close()
-
 conn.close()
 
 print("\nFINALIZADO")
