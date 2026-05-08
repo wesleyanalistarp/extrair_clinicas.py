@@ -342,109 +342,160 @@
 
        #empresaModalCustom{
 
-    position:fixed;
-    inset:0;
+    position: fixed;
 
-    background:rgba(0,0,0,0.08);
+    inset: 0;
 
-    display:none;
+    background: rgba(15, 23, 42, 0.72);
 
-    align-items:center;
-    justify-content:center;
+    backdrop-filter: blur(8px);
 
-    z-index:999999;
+    display: none;
 
-    padding:16px;
+    align-items: center;
+    justify-content: center;
+
+    z-index: 999999;
+
+    padding: 20px;
 }
 
 .empresa-box{
 
-    background:#fff;
+    background: #f8fafc;
 
-    width:100%;
-    max-width:700px;
+    width: 100%;
+    max-width: 950px;
 
-    height:auto;
-    max-height:90vh;
+    height: auto;
 
-    overflow-y:auto;
+    max-height: 92vh;
 
-    border-radius:18px;
+    overflow-y: auto;
 
-    box-shadow:0 10px 40px rgba(0,0,0,0.12);
+    border-radius: 22px;
 
-    animation:fadeUp .2s ease;
+    box-shadow:
+        0 25px 60px rgba(0,0,0,0.25);
+
+    animation: fadeUp .22s ease;
 }
 
 .empresa-header{
 
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
+    display: flex;
 
-    padding:18px;
+    align-items: center;
 
-    border-bottom:1px solid #eee;
+    justify-content: space-between;
 
-    position:sticky;
-    top:0;
+    padding: 20px 24px;
 
-    background:#fff;
+    border-bottom: 1px solid #e5e7eb;
 
-    z-index:10;
+    position: sticky;
+
+    top: 0;
+
+    background: #ffffffee;
+
+    backdrop-filter: blur(10px);
+
+    z-index: 10;
+
+    border-radius: 22px 22px 0 0;
 }
 
 .empresa-header h5{
-    margin:0;
+
+    margin: 0;
+
+    font-weight: 700;
+
+    font-size: 22px;
+
+    color: #111827;
 }
 
 .empresa-header button{
 
-    border:none;
-    background:none;
+    border: none;
 
-    font-size:24px;
+    background: #ef4444;
 
-    cursor:pointer;
+    color: white;
+
+    width: 38px;
+    height: 38px;
+
+    border-radius: 10px;
+
+    font-size: 18px;
+
+    cursor: pointer;
+
+    transition: .2s;
+}
+
+.empresa-header button:hover{
+
+    transform: scale(1.08);
+
+    background: #dc2626;
 }
 
 #empresaConteudo{
-    padding:20px;
+
+    padding: 24px;
+}
+
+#empresaConteudo .card{
+
+    border: none;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 8px 22px rgba(0,0,0,.06);
+
+    background: white;
+}
+
+#empresaConteudo .badge{
+
+    border-radius: 999px;
+
+    padding: 8px 12px;
+
+    font-size: 12px;
+}
+
+#empresaConteudo small{
+
+    color: #6b7280;
+
+    font-size: 12px;
 }
 
 @keyframes fadeUp{
 
     from{
-        opacity:0;
-        transform:translateY(10px);
+
+        opacity: 0;
+
+        transform:
+            translateY(14px)
+            scale(.98);
     }
 
     to{
-        opacity:1;
-        transform:translateY(0);
+
+        opacity: 1;
+
+        transform:
+            translateY(0)
+            scale(1);
     }
-}
-
-@media(max-width:768px){
-
-    #empresaModalCustom{
-        padding:0;
-        align-items:flex-end;
-    }
-
-    .empresa-box{
-
-        max-width:100%;
-
-        width:100%;
-
-        height:92vh;
-
-        max-height:92vh;
-
-        border-radius:20px 20px 0 0;
-    }
-
 }
 .lista-municipios{
 
@@ -483,6 +534,40 @@
 .item-municipio:hover{
 
     background:#f3f4f6;
+}
+/* MOBILE MODAL PREMIUM */
+
+@media(max-width:768px){
+
+    #empresaModalCustom{
+
+        padding: 0;
+
+        align-items: flex-end;
+    }
+
+    .empresa-box{
+
+        max-width: 100%;
+
+        width: 100%;
+
+        height: 94vh;
+
+        max-height: 94vh;
+
+        border-radius: 24px 24px 0 0;
+    }
+
+    .empresa-header{
+
+        border-radius: 24px 24px 0 0;
+    }
+
+    #empresaConteudo{
+
+        padding: 16px;
+    }
 }
     </style>
 </head>

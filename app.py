@@ -109,6 +109,10 @@ def favicon():
 # MAPA SITUAÇÃO CADASTRAL
 # =========================
 
+# =========================
+# MAPA SITUAÇÃO CADASTRAL
+# =========================
+
 mapa_situacao = {
     "01": "NULA",
     "02": "ATIVA",
@@ -117,12 +121,50 @@ mapa_situacao = {
     "08": "BAIXADA"
 }
 
+# =========================
+# MAPA PORTE
+# =========================
+
 mapa_porte = {
     "00": "NÃO INFORMADO",
     "01": "MICRO EMPRESA",
     "03": "EMPRESA DE PEQUENO PORTE",
     "05": "DEMAIS"
 }
+
+# =========================
+# MAPA NATUREZA JURIDICA
+# =========================
+
+mapa_natureza = {
+
+    "2038": "Sociedade Anônima Aberta",
+
+    "2062": "Sociedade Empresária Limitada",
+
+    "2135": "Empresário Individual",
+
+    "2143": "Cooperativa",
+
+    "2240": "Sociedade Simples Limitada",
+
+    "3999": "Associação Privada"
+
+}
+
+# =========================
+# FUNÇÃO AUXILIAR
+# =========================
+
+def tratar(valor, padrao="-"):
+
+    if valor is None:
+        return padrao
+
+    if str(valor).strip() == "":
+        return padrao
+
+    return str(valor).strip()
 
 # =========================
 # DADOS DA EMPRESA
@@ -133,118 +175,366 @@ mapa_porte = {
 def empresa_detalhe(cnpj):
 
     empresa = db.session.execute(text("""
-        SELECT
-            cnpj,
-            COALESCE(razao_social, nome_fantasia) AS nome,
-            telefone,
-            uf,
-            municipio,
-            cep,
-            logradouro,
-            numero,
-            bairro,
-            email,
-            cnae_principal,
-            porte_empresa,
-            situacao_cadastral
-        FROM empresas_detalhes
-        WHERE cnpj = :cnpj
-        LIMIT 1
-    """), {"cnpj": cnpj}).fetchone()
 
+        SELECT
+
+            d.cnpj,
+
+            d.razao_social,
+
+            d.nome_fantasia,
+
+            d.telefone,
+
+            e.telefone2,
+
+            d.uf,
+
+            d.municipio,
+
+            d.cep,
+
+            d.logradouro,
+
+            d.numero,
+
+            d.bairro,
+
+            d.email,
+
+            d.cnae_principal,
+
+            d.porte_empresa,
+
+            d.situacao_cadastral,
+
+            e.status,
+
+            e.observacao,
+
+            e.ultima_acao,
+
+            e.data_inicio,
+
+            d.capital_social,
+
+            d.ver_juridico
+
+        FROM empresas_detalhes d
+
+        LEFT JOIN empresas e
+            ON d.cnpj = e.cnpj
+
+        WHERE d.cnpj = :cnpj
+
+        LIMIT 1
+
+    """), {
+
+        "cnpj": cnpj
+
+    }).fetchone()
+
+    # =========================
     # NÃO ENCONTRADO
+    # =========================
+
     if not empresa:
 
         return jsonify({
+
             "cnpj": cnpj,
-            "nome": "Dados não importados",
-            "telefone": "",
-            "uf": "",
-            "municipio": "",
-            "cep": "",
-            "logradouro": "",
-            "numero": "",
-            "bairro": "",
-            "email": "",
-            "cnae": "",
-            "porte": "",
-            "situacao": ""
+
+            "nome": "Empresa não encontrada",
+
+            "telefone": "-",
+
+            "telefone2": "-",
+
+            "uf": "-",
+
+            "municipio": "-",
+
+            "cep": "-",
+
+            "logradouro": "-",
+
+            "numero": "-",
+
+            "bairro": "-",
+
+            "email": "-",
+
+            "cnae": "-",
+
+            "porte": "-",
+
+            "situacao": "-",
+
+            "status_crm": "-",
+
+            "observacao": "-",
+
+            "ultima_acao": "-",
+
+            "tempo_empresa": "-",
+
+            "capital_social": "-",
+
+            "natureza_juridica": "-",
+
+            "lead_badge": "🟡 Lead Básico"
+
         })
 
+    # =========================
+    # NOME EMPRESA
+    # =========================
+
+    nome_empresa = "-"
+
+    if tratar(empresa[2], ""):
+
+        nome_empresa = tratar(empresa[2])
+
+    elif tratar(empresa[1], ""):
+
+        nome_empresa = tratar(empresa[1])
+
+    else:
+
+        nome_empresa = "EMPRESA SEM IDENTIFICAÇÃO"
+
+    # =========================
     # MUNICÍPIO
+    # =========================
+
     municipio_nome = mapa_municipios.get(
-        str(empresa[4]).strip(),
-        str(empresa[4])
+
+        str(empresa[6]).strip(),
+
+        str(empresa[6])
+
     )
 
+    # =========================
     # SITUAÇÃO
+    # =========================
+
     situacao_nome = mapa_situacao.get(
-        str(empresa[12]).zfill(2),
-        str(empresa[12])
+
+        str(empresa[14]).zfill(2),
+
+        str(empresa[14])
+
     )
 
+    # =========================
     # PORTE
+    # =========================
+
     porte_nome = mapa_porte.get(
-        str(empresa[11]).zfill(2),
-        str(empresa[11]) if empresa[11] else "-"
+
+        str(empresa[13]).zfill(2),
+
+        tratar(empresa[13])
+
     )
 
+    # =========================
+    # NATUREZA JURIDICA
+    # =========================
+
+    natureza = mapa_natureza.get(
+
+        tratar(empresa[20]),
+
+        "Não informado"
+
+    )
+
+    # =========================
+    # CAPITAL SOCIAL
+    # =========================
+
+    capital = "Não informado"
+
+    if empresa[19]:
+
+        try:
+
+            capital = f"R$ {float(empresa[19]):,.2f}"
+
+            capital = capital.replace(",", "X")
+            capital = capital.replace(".", ",")
+            capital = capital.replace("X", ".")
+
+        except:
+
+            capital = tratar(empresa[19])
+
+    # =========================
+    # TEMPO EMPRESA
+    # =========================
+
+    tempo_empresa = "-"
+
+    if empresa[18]:
+
+        try:
+
+            ano = str(empresa[18])[:4]
+
+            tempo_empresa = f"Desde {ano}"
+
+        except:
+            pass
+
+    # =========================
     # CNAE FORMATADO
-    cnae = ""
+    # =========================
 
-    if empresa[10]:
+    cnae = "-"
 
-        cnae_raw = str(empresa[10])
+    if empresa[12]:
+
+        cnae_raw = str(empresa[12])
 
         if len(cnae_raw) >= 5:
+
             cnae = f"{cnae_raw[:4]}-{cnae_raw[4:]}"
+
         else:
+
             cnae = cnae_raw
+
+    # =========================
+    # SCORE LEAD
+    # =========================
+
+    score = 0
+
+    if tratar(empresa[3], ""):
+        score += 20
+
+    if tratar(empresa[11], ""):
+        score += 20
+
+    if tratar(empresa[1], ""):
+        score += 20
+
+    if tratar(empresa[19], ""):
+        score += 20
+
+    if str(empresa[14]).zfill(2) == "02":
+        score += 20
+
+    # =========================
+    # BADGE LEAD
+    # =========================
+
+    if score >= 80:
+
+        lead_badge = "🔥 Lead Premium"
+
+    elif score >= 50:
+
+        lead_badge = "⭐ Lead quente"
+
+    else:
+
+        lead_badge = "🟡 Lead básico"
+
+    # =========================
+    # RETORNO JSON
+    # =========================
 
     return jsonify({
 
-        "cnpj": empresa[0],
+        "cnpj": tratar(empresa[0]),
 
-        "nome": empresa[1] if empresa[1] else "NÃO INFORMADO",
+        "nome": nome_empresa,
 
-        "telefone": empresa[2],
-        "uf": empresa[3],
+        "telefone": tratar(empresa[3]),
 
-        "municipio": municipio_nome,
+        "telefone2": tratar(empresa[4]),
 
-        "cep": empresa[5],
-        "logradouro": empresa[6],
-        "numero": empresa[7],
-        "bairro": empresa[8],
+        "uf": tratar(empresa[5]),
 
-        "email": empresa[9],
+        "municipio": tratar(municipio_nome),
+
+        "cep": tratar(empresa[7]),
+
+        "logradouro": tratar(empresa[8]),
+
+        "numero": tratar(empresa[9]),
+
+        "bairro": tratar(empresa[10]),
+
+        "email": tratar(empresa[11]),
 
         "cnae": cnae,
 
         "porte": porte_nome,
 
-        "situacao": situacao_nome
+        "situacao": situacao_nome,
+
+        "status_crm": tratar(empresa[15]),
+
+        "observacao": tratar(empresa[16]),
+
+        "ultima_acao": (
+            str(empresa[17])
+            if empresa[17]
+            else "-"
+        ),
+
+        "tempo_empresa": tempo_empresa,
+
+        "capital_social": capital,
+
+        "natureza_juridica": natureza,
+
+        "lead_badge": lead_badge
+
     })
+
 # =========================
+# MUNICIPIOS
+# =========================
+
 mapa_municipios = {}
 
 try:
+
     if os.path.exists("F.K03200$Z.D60411.MUNICCSV"):
+
         municipios_df = pd.read_csv(
+
             "F.K03200$Z.D60411.MUNICCSV",
+
             sep=";",
+
             dtype=str,
+
             encoding="latin1"
+
         )
 
         municipios_df.columns = ["codigo", "nome"]
 
         mapa_municipios = dict(zip(
+
             municipios_df["codigo"].str.strip(),
-            municipios_df["nome"].str.strip().str.upper()
+
+            municipios_df["nome"]
+            .str.strip()
+            .str.upper()
+
         ))
 
 except Exception as e:
+
     print("⚠️ ERRO MUNICIPIOS:", e)
 
 # =========================
