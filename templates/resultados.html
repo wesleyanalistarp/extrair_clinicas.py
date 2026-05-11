@@ -99,11 +99,10 @@
                     <td>
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px;">
                             <!-- WhatsApp -->
-                            <a href="https://wa.me/55{{ item.telefone | replace('(', '') | replace(')', '') | replace('-', '') | replace(' ', '') }}"
-                                target="_blank"
-                                class="btn btn-success btn-sm d-flex align-items-center justify-content-center"
-                                title="WhatsApp">
-
+                            <a href="#" onclick="abrirWhatsapp(
+                                '{{ item.telefone }}',
+                                '{{ item.nome }}'
+                            )" class="btn btn-success btn-sm d-flex align-items-center justify-content-center" title="WhatsApp">
                                 <i class="bi bi-whatsapp"></i>
                             </a>
                             <button onclick="marcar('{{ item.cnpj }}','ligado')"
@@ -492,6 +491,59 @@
         document.getElementById("empresaModalCustom")
             .style.display = "none";
     }
+    function abrirWhatsapp(telefone, empresa){
+
+    // limpa telefone
+    telefone = telefone
+        .replace(/\(/g, '')
+        .replace(/\)/g, '')
+        .replace(/\-/g, '')
+        .replace(/\s/g, '');
+
+    // hora atual
+    const hora = new Date().getHours();
+
+    let saudacao = "Olá";
+
+    if(hora >= 5 && hora < 12){
+
+        saudacao = "Bom dia";
+
+    } else if(hora >= 12 && hora < 18){
+
+        saudacao = "Boa tarde";
+
+    } else {
+
+        saudacao = "Boa noite";
+    }
+
+    // mensagem
+    const mensagem = `${saudacao} ${empresa}, tudo bem?
+
+Meu nome é Ramon.
+
+Trabalho com soluções para clínicas e consultórios, incluindo:
+
+• sistema médico
+• prontuário
+• agendamento
+• automações
+• ponto eletrônico
+
+Gostaria de apresentar rapidamente a plataforma.`;
+
+    // encode
+    const mensagemFinal = encodeURIComponent(mensagem);
+
+    // abre whatsapp
+    window.open(
+
+        `https://wa.me/55${telefone}?text=${mensagemFinal}`,
+
+        '_blank'
+    );
+}
 
 
 </script>
