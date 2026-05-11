@@ -268,11 +268,25 @@
 
     </div>
 
-    <small class="text-muted">
+            <small class="text-muted d-block mb-3">
 
-        ${data.tempo_empresa || '-'}
+            ${data.tempo_empresa || '-'}
 
-    </small>
+        </small>    
+
+        <a 
+            href="#"
+            onclick="abrirWhatsapp(
+                '${data.telefone || ""}',
+                '${data.nome || ""}'
+            )"
+            class="btn btn-success btn-sm px-3 mb-4"
+        >
+
+            <i class="bi bi-whatsapp"></i>
+            Chamar no WhatsApp
+
+        </a>
 
 </div>
 
