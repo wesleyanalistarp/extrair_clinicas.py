@@ -142,30 +142,30 @@
     {% endif %}
 
 </div>
-    <!-- MODAL EMPRESA -->
-                <div id="empresaModalCustom">
+<!-- MODAL EMPRESA -->
+<div id="empresaModalCustom">
 
-                    <div class="empresa-box">
+    <div class="empresa-box">
 
-                        <div class="empresa-header">
+        <div class="empresa-header">
 
-                            <h5>Dados da Empresa</h5>
+            <h5>Dados da Empresa</h5>
 
-                            <button onclick="fecharEmpresaModal()">
-                                ✕
-                            </button>
+            <button onclick="fecharEmpresaModal()">
+                ✕
+            </button>
 
-                        </div>
+        </div>
 
-                        <div id="empresaConteudo">
+        <div id="empresaConteudo">
 
-                            Carregando...
+            Carregando...
 
-                        </div>
+        </div>
 
-                    </div>
+    </div>
 
-                </div>
+</div>
 <script>
     function marcar(cnpj, status) {
 
@@ -220,11 +220,11 @@
 
     async function abrirEmpresa(cnpj) {
 
-    document.getElementById("empresaModalCustom")
-        .style.display = "flex";
+        document.getElementById("empresaModalCustom")
+            .style.display = "flex";
 
-    document.getElementById("empresaConteudo")
-        .innerHTML = `
+        document.getElementById("empresaConteudo")
+            .innerHTML = `
     
     <div class="text-center p-5">
 
@@ -237,53 +237,45 @@
     </div>
     `;
 
-    try {
+        try {
 
-        const res = await fetch("/empresa/" + cnpj);
+            const res = await fetch("/empresa/" + cnpj);
 
-        const data = await res.json();
+            const data = await res.json();
 
-        document.getElementById("empresaConteudo")
-            .innerHTML = `
+            document.getElementById("empresaConteudo")
+                .innerHTML = `
 
         <div class="p-2">
 
             <!-- HEADER -->
             <div class="mb-4">
 
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
 
-                    <div>
+    <h3 class="fw-bold mb-2">
+        ${data.nome || '-'}
+    </h3>
 
-                        <h3 class="fw-bold mb-2">
-                            ${data.nome || '-'}
-                        </h3>
+    <div class="d-flex gap-2 flex-wrap mb-2">
 
-                        <div class="d-flex gap-2 flex-wrap">
+        <span class="badge bg-success">
+            🟢 ${data.situacao || '-'}
+        </span>
 
-                            <span class="badge bg-success">
-                                🟢 ${data.situacao || '-'}
-                            </span>
+        <span class="badge bg-dark">
+            ${data.lead_badge || '⚪ Lead Básico'}
+        </span>
 
-                            <span class="badge bg-dark">
-                                ⭐ Lead quente
-                            </span>
+    </div>
 
-                        </div>
+    <small class="text-muted">
 
-                    </div>
+        ${data.tempo_empresa || '-'}
 
-                    <div class="text-end">
+    </small>
 
-                        <small class="text-muted d-block">
-                            ${data.tempo_empresa || '-'}
-                        </small>
-
-                    </div>
-
-                </div>
-
-            </div>
+</div>
 
             <!-- CONTATOS -->
             <div class="card p-3 mb-3">
@@ -483,17 +475,17 @@
         </div>
         `;
 
-    } catch (e) {
+        } catch (e) {
 
-        document.getElementById("empresaConteudo")
-            .innerHTML = `
+            document.getElementById("empresaConteudo")
+                .innerHTML = `
         
         <div class="alert alert-danger">
             Erro ao carregar empresa.
         </div>
         `;
+        }
     }
-}
 
     function fecharEmpresaModal() {
 

@@ -138,7 +138,11 @@ mapa_porte = {
 
 mapa_natureza = {
 
+    "1244": "Município",
+
     "2038": "Sociedade Anônima Aberta",
+
+    "2054": "Sociedade Anônima Fechada",
 
     "2062": "Sociedade Empresária Limitada",
 
@@ -149,7 +153,6 @@ mapa_natureza = {
     "2240": "Sociedade Simples Limitada",
 
     "3999": "Associação Privada"
-
 }
 
 # =========================
@@ -161,13 +164,94 @@ def tratar(valor, padrao="-"):
     if valor is None:
         return padrao
 
-    if str(valor).strip() == "":
+    valor = (
+        str(valor)
+        .replace('"', '')
+        .strip()
+    )
+
+    if valor == "":
         return padrao
 
-    return str(valor).strip()
+    return valor
 
 # =========================
-# DADOS DA EMPRESA
+# FORMATA TELEFONE
+# =========================
+
+def formatar_telefone(telefone):
+
+    telefone = tratar(telefone, "")
+
+    telefone = (
+        telefone
+        .replace("(", "")
+        .replace(")", "")
+        .replace("-", "")
+        .replace(" ", "")
+    )
+
+    if len(telefone) == 10:
+
+        return f"({telefone[:2]}) {telefone[2:6]}-{telefone[6:]}"
+
+    if len(telefone) == 11:
+
+        return f"({telefone[:2]}) {telefone[2:7]}-{telefone[7:]}"
+
+    return telefone if telefone else "-"
+
+# =========================
+# FORMATA CAPITAL
+# =========================
+
+def formatar_capital(valor):
+
+    if not valor:
+        return "Não informado"
+
+    try:
+
+        valor = (
+            str(valor)
+            .replace(".", "")
+            .replace(",", ".")
+        )
+
+        valor_float = float(valor)
+
+        capital = f"R$ {valor_float:,.2f}"
+
+        capital = capital.replace(",", "X")
+        capital = capital.replace(".", ",")
+        capital = capital.replace("X", ".")
+
+        return capital
+
+    except:
+
+        return tratar(valor)
+
+# =========================
+# FORMATA CNAE
+# =========================
+
+def formatar_cnae(cnae):
+
+    cnae = tratar(cnae, "")
+
+    if len(cnae) >= 7:
+
+        return (
+            f"{cnae[:4]}-"
+            f"{cnae[4]}/"
+            f"{cnae[5:]}"
+        )
+
+    return cnae if cnae else "-"
+
+# =========================
+# DADOS EMPRESA
 # =========================
 
 @app.route("/empresa/<cnpj>")
@@ -214,11 +298,15 @@ def empresa_detalhe(cnpj):
 
             e.ultima_acao,
 
-            e.data_inicio,
+            d.data_inicio_atividade,
 
             d.capital_social,
 
-            d.ver_juridico
+            d.natureza_juridica,
+
+            d.lead_score,
+
+            d.lead_classificacao
 
         FROM empresas_detalhes d
 
@@ -283,7 +371,9 @@ def empresa_detalhe(cnpj):
 
             "natureza_juridica": "-",
 
-            "lead_badge": "🟡 Lead Básico"
+            "lead_badge": "⚪ Lead Básico",
+
+            "lead_score": 0
 
         })
 
@@ -291,7 +381,7 @@ def empresa_detalhe(cnpj):
     # NOME EMPRESA
     # =========================
 
-    nome_empresa = "-"
+    nome_empresa = "EMPRESA SEM IDENTIFICAÇÃO"
 
     if tratar(empresa[2], ""):
 
@@ -301,19 +391,15 @@ def empresa_detalhe(cnpj):
 
         nome_empresa = tratar(empresa[1])
 
-    else:
-
-        nome_empresa = "EMPRESA SEM IDENTIFICAÇÃO"
-
     # =========================
     # MUNICÍPIO
     # =========================
 
     municipio_nome = mapa_municipios.get(
 
-        str(empresa[6]).strip(),
+        tratar(empresa[6]),
 
-        str(empresa[6])
+        tratar(empresa[6])
 
     )
 
@@ -323,9 +409,9 @@ def empresa_detalhe(cnpj):
 
     situacao_nome = mapa_situacao.get(
 
-        str(empresa[14]).zfill(2),
+        tratar(empresa[14]).zfill(2),
 
-        str(empresa[14])
+        tratar(empresa[14])
 
     )
 
@@ -335,115 +421,78 @@ def empresa_detalhe(cnpj):
 
     porte_nome = mapa_porte.get(
 
-        str(empresa[13]).zfill(2),
+        tratar(empresa[13]).zfill(2),
 
         tratar(empresa[13])
 
     )
 
-    # =========================
-    # NATUREZA JURIDICA
-    # =========================
-
-    natureza = mapa_natureza.get(
-
-        tratar(empresa[20]),
-
-        "Não informado"
-
-    )
-
-    # =========================
-    # CAPITAL SOCIAL
-    # =========================
-
-    capital = "Não informado"
-
-    if empresa[19]:
-
-        try:
-
-            capital = f"R$ {float(empresa[19]):,.2f}"
-
-            capital = capital.replace(",", "X")
-            capital = capital.replace(".", ",")
-            capital = capital.replace("X", ".")
-
-        except:
-
-            capital = tratar(empresa[19])
-
-    # =========================
+        # =========================
     # TEMPO EMPRESA
     # =========================
 
     tempo_empresa = "-"
 
-    if empresa[18]:
+    print("DATA EMPRESA:", empresa[18])
+    print("TIPO:", type(empresa[18]))
 
-        try:
+    try:
 
-            ano = str(empresa[18])[:4]
+        if empresa[18]:
 
-            tempo_empresa = f"Desde {ano}"
+            data_abertura = datetime.strptime(
 
-        except:
-            pass
+                str(empresa[18]),
 
-    # =========================
-    # CNAE FORMATADO
-    # =========================
+                "%Y-%m-%d"
 
-    cnae = "-"
+            )
 
-    if empresa[12]:
+            ano_atual = datetime.now().year
 
-        cnae_raw = str(empresa[12])
+            anos_empresa = (
+                ano_atual - data_abertura.year
+            )
 
-        if len(cnae_raw) >= 5:
+            tempo_empresa = (
 
-            cnae = f"{cnae_raw[:4]}-{cnae_raw[4:]}"
+                f"Desde "
+                f"{data_abertura.strftime('%d/%m/%Y')} "
+                f"({anos_empresa} anos)"
 
-        else:
+            )
 
-            cnae = cnae_raw
+    except Exception as e:
 
-    # =========================
-    # SCORE LEAD
-    # =========================
+        print("ERRO TEMPO EMPRESA:", e)
+# =========================
+# SCORE / CLASSIFICAÇÃO
+# =========================
 
-    score = 0
 
-    if tratar(empresa[3], ""):
-        score += 20
+    lead_score = empresa[21] or 0
 
-    if tratar(empresa[11], ""):
-        score += 20
+    try:
 
-    if tratar(empresa[1], ""):
-        score += 20
+        lead_score = int(lead_score)
 
-    if tratar(empresa[19], ""):
-        score += 20
+    except:
 
-    if str(empresa[14]).zfill(2) == "02":
-        score += 20
+        lead_score = 0
 
-    # =========================
-    # BADGE LEAD
-    # =========================
+    lead_badge = "⚪ Lead Básico"
 
-    if score >= 80:
+    if lead_score >= 90:
 
         lead_badge = "🔥 Lead Premium"
 
-    elif score >= 50:
+    elif lead_score >= 70:
 
-        lead_badge = "⭐ Lead quente"
+        lead_badge = "⭐ Lead Quente"
 
-    else:
+    elif lead_score >= 40:
 
-        lead_badge = "🟡 Lead básico"
+        lead_badge = "🟡 Lead Médio"
 
     # =========================
     # RETORNO JSON
@@ -455,9 +504,9 @@ def empresa_detalhe(cnpj):
 
         "nome": nome_empresa,
 
-        "telefone": tratar(empresa[3]),
+        "telefone": formatar_telefone(empresa[3]),
 
-        "telefone2": tratar(empresa[4]),
+        "telefone2": formatar_telefone(empresa[4]),
 
         "uf": tratar(empresa[5]),
 
@@ -473,7 +522,7 @@ def empresa_detalhe(cnpj):
 
         "email": tratar(empresa[11]),
 
-        "cnae": cnae,
+        "cnae": formatar_cnae(empresa[12]),
 
         "porte": porte_nome,
 
@@ -491,11 +540,19 @@ def empresa_detalhe(cnpj):
 
         "tempo_empresa": tempo_empresa,
 
-        "capital_social": capital,
+        "capital_social": formatar_capital(empresa[19]),
 
-        "natureza_juridica": natureza,
+        "natureza_juridica": mapa_natureza.get(
 
-        "lead_badge": lead_badge
+            tratar(empresa[20]).zfill(4),
+
+            tratar(empresa[20])
+
+        ),
+
+        "lead_badge": lead_badge,
+
+        "lead_score": lead_score
 
     })
 
@@ -536,11 +593,9 @@ try:
 except Exception as e:
 
     print("⚠️ ERRO MUNICIPIOS:", e)
-
 # =========================
 # BUSCA EMPRESAS
 # =========================
-from sqlalchemy import text
 
 def buscar_empresas(cidade, uf, palavra, data_min, status):
 

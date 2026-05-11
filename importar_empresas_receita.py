@@ -2,63 +2,86 @@ import os
 import psycopg2
 from psycopg2.extras import execute_batch
 
-# ==========================================
-# CONEXÃO
-# ==========================================
+# =====================================
+# CONFIG
+# =====================================
 
 DATABASE_URL = "postgresql://neondb_owner:npg_KR5TGagzE1mZ@ep-steep-dust-am57tgsu-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+
+
+PASTA_DADOS = r"C:\extrair_clinicas.py\dados_receita"
+
+BATCH_SIZE = 5000
+
+# =====================================
+# CONEXÃO
+# =====================================
 
 conn = psycopg2.connect(DATABASE_URL)
 
 cursor = conn.cursor()
 
-# ==========================================
-# PASTA RECEITA
-# ==========================================
+# =====================================
+# BUSCAR CNPJS NECESSÁRIOS
+# =====================================
 
-PASTA = r"C:\extrair_clinicas.py\dados_receita"
+print("\n🔎 Carregando CNPJs do banco...")
 
-# ==========================================
-# CONFIG
-# ==========================================
+cursor.execute("""
 
-BATCH_SIZE = 10
+    SELECT DISTINCT cnpj_base
 
-dados_batch = []
+    FROM empresas_detalhes
 
-total_lidos = 0
+    WHERE (
 
-total_atualizados = 0
+        natureza_juridica IS NULL
 
-# ==========================================
-# BASE TESTE
-# ==========================================
+        OR porte_empresa IS NULL
 
-BASE_TESTE = "05738175"
+        OR capital_social IS NULL
 
-# ==========================================
-# LOOP PASTAS
-# ==========================================
+        OR razao_social IS NULL
 
-for pasta in os.listdir(PASTA):
+    )
 
-    caminho_pasta = os.path.join(PASTA, pasta)
+    AND cnpj_base IS NOT NULL
 
-    if not os.path.isdir(caminho_pasta):
+""")
+
+bases_necessarias = {
+    row[0]
+    for row in cursor.fetchall()
+}
+
+print(f"✅ {len(bases_necessarias)} bases pendentes")
+
+# =====================================
+# PROCESSAMENTO
+# =====================================
+
+updates = []
+
+total_updates = 0
+
+for pasta in os.listdir(PASTA_DADOS):
+
+    if "empresa" not in pasta.lower():
         continue
 
-    print(f"\n📂 Processando pasta: {pasta}")
+    caminho_pasta = os.path.join(
+        PASTA_DADOS,
+        pasta
+    )
 
-    # ======================================
-    # LOOP ARQUIVOS
-    # ======================================
+    print(f"\n📂 Processando pasta: {pasta}")
 
     for arquivo_nome in os.listdir(caminho_pasta):
 
         if "EMPRECSV" not in arquivo_nome.upper():
             continue
 
-        arquivo_path = os.path.join(
+        caminho_arquivo = os.path.join(
             caminho_pasta,
             arquivo_nome
         )
@@ -66,256 +89,168 @@ for pasta in os.listdir(PASTA):
         print(f"📄 Lendo: {arquivo_nome}")
 
         with open(
-            arquivo_path,
+            caminho_arquivo,
             "r",
             encoding="latin1"
         ) as arquivo:
 
-            for linha in arquivo:
+            for linha_num, linha in enumerate(arquivo, start=1):
+
+                partes = linha.strip().split(";")
+
+                if len(partes) < 6:
+                    continue
+
+                cnpj_base = (
+                    partes[0]
+                    .replace('"', '')
+                    .strip()
+                    .zfill(8)
+                )
+
+                if cnpj_base not in bases_necessarias:
+                    continue
+
+                razao_social = (
+                    partes[1]
+                    .replace('"', '')
+                    .strip()
+                )
+
+                natureza_juridica = (
+                    partes[2]
+                    .replace('"', '')
+                    .strip()
+                )
+
+                capital_social = (
+                    partes[4]
+                    .replace('"', '')
+                    .replace(',', '.')
+                    .strip()
+                )
+
+                porte_empresa = (
+                    partes[5]
+                    .replace('"', '')
+                    .strip()
+                )
 
                 try:
 
-                    partes = linha.strip().split(";")
-
-                    # ==================================
-                    # LINHA INVÁLIDA
-                    # ==================================
-
-                    if len(partes) < 2:
-                        continue
-
-                    # ==================================
-                    # CNPJ BASE
-                    # ==================================
-
-                    cnpj_base = (
-                        partes[0]
-                        .strip()
-                        .zfill(8)
+                    capital_social = float(
+                        capital_social
                     )
 
-                    if not cnpj_base:
-                        continue
+                except:
 
-                    # ==================================
-                    # DEBUG MATCH
-                    # ==================================
+                    capital_social = 0
 
-                    if cnpj_base == BASE_TESTE:
+                updates.append((
 
-                        print("\n🎯 BASE ENCONTRADA !!!")
+                    razao_social,
+                    natureza_juridica,
+                    porte_empresa,
+                    capital_social,
+                    cnpj_base
 
-                        print(partes)
+                ))
 
-                    # ==================================
-                    # RAZÃO SOCIAL
-                    # ==================================
+                # =====================================
+                # BATCH
+                # =====================================
 
-                    razao_social = None
+                if len(updates) >= BATCH_SIZE:
 
-                    if len(partes) > 1:
+                    execute_batch(
 
-                        razao_social = (
-                            partes[1]
-                            .replace('"', '')
-                            .strip()
-                        )
+                        cursor,
 
-                    # ==================================
-                    # NATUREZA JURÍDICA
-                    # ==================================
+                        """
 
-                    natureza_juridica = None
+                        UPDATE empresas_detalhes
 
-                    if len(partes) > 2:
+                        SET
 
-                        natureza_juridica = (
-                            partes[2]
-                            .replace('"', '')
-                            .strip()
-                        )
+                            razao_social = %s,
 
-                    # ==================================
-                    # CAPITAL SOCIAL
-                    # ==================================
+                            natureza_juridica = %s,
 
-                    capital_social = None
+                            porte_empresa = %s,
 
-                    if len(partes) > 4:
+                            capital_social = %s
 
-                        valor = (
-                            partes[4]
-                            .replace('"', '')
-                            .replace("'", '')
-                            .strip()
-                        )
+                        WHERE cnpj_base = %s
 
-                        if valor:
+                        """,
 
-                            try:
+                        updates
 
-                                valor = valor.replace(",", ".")
+                    )
 
-                                capital_social = float(valor)
+                    conn.commit()
 
-                            except:
+                    total_updates += len(updates)
 
-                                capital_social = None
+                    print(
+                        f"✅ {total_updates} updates realizados"
+                    )
 
-                    # ==================================
-                    # PORTE
-                    # ==================================
+                    updates.clear()
 
-                    porte_empresa = None
+                # =====================================
+                # LOG
+                # =====================================
 
-                    if len(partes) > 5:
+                if linha_num % 100000 == 0:
 
-                        porte_empresa = (
-                            partes[5]
-                            .replace('"', '')
-                            .strip()
-                        )
+                    print(
+                        f"📌 {linha_num} linhas lidas"
+                    )
 
-                    # ==================================
-                    # BATCH
-                    # ==================================
+# =====================================
+# ÚLTIMO LOTE
+# =====================================
 
-                    dados_batch.append((
+if updates:
 
-                        razao_social,
+    execute_batch(
 
-                        natureza_juridica,
+        cursor,
 
-                        capital_social,
+        """
 
-                        porte_empresa,
+        UPDATE empresas_detalhes
 
-                        cnpj_base
+        SET
 
-                    ))
+            razao_social = %s,
 
-                    total_lidos += 1
+            natureza_juridica = %s,
 
-                    # ==================================
-                    # LOG
-                    # ==================================
+            porte_empresa = %s,
 
-                    if total_lidos % 10 == 0:
+            capital_social = %s
 
-                        print(
-                            f"📌 {total_lidos} linhas lidas"
-                        )
+        WHERE cnpj_base = %s
 
-                    # ==================================
-                    # EXECUTA LOTE
-                    # ==================================
+        """,
 
-                    if len(dados_batch) >= BATCH_SIZE:
+        updates
 
-                        execute_batch(
+    )
 
-                            cursor,
+    conn.commit()
 
-                            """
-                            UPDATE empresas_detalhes
-                            SET
+    total_updates += len(updates)
 
-                                razao_social = %s,
-
-                                natureza_juridica = %s,
-
-                                capital_social = %s,
-
-                                porte_empresa = %s
-
-                            WHERE LEFT(
-                                empresas_detalhes.cnpj,
-                                8
-                            ) = %s
-                            """,
-
-                            dados_batch,
-
-                            page_size=BATCH_SIZE
-
-                        )
-
-                        conn.commit()
-
-                        print(
-                            f"LINHAS AFETADAS: {cursor.rowcount}"
-                        )
-
-                        total_atualizados += len(dados_batch)
-
-                        print(
-                            f"✅ LOTE ATUALIZADO ({total_atualizados})"
-                        )
-
-                        dados_batch.clear()
-
-                except Exception as e:
-
-                    conn.rollback()
-
-                    print("ERRO:", e)
-
-# ==========================================
-# RESTANTE
-# ==========================================
-
-if dados_batch:
-
-    try:
-
-        execute_batch(
-
-            cursor,
-
-            """
-            UPDATE empresas_detalhes
-            SET
-
-                razao_social = %s,
-
-                natureza_juridica = %s,
-
-                capital_social = %s,
-
-                porte_empresa = %s
-
-            WHERE LEFT(
-                empresas_detalhes.cnpj,
-                8
-            ) = %s
-            """,
-
-            dados_batch,
-
-            page_size=BATCH_SIZE
-
-        )
-
-        conn.commit()
-
-        total_atualizados += len(dados_batch)
-
-        print(
-            f"✅ ÚLTIMO LOTE ({total_atualizados})"
-        )
-
-    except Exception as e:
-
-        conn.rollback()
-
-        print("ERRO FINAL:", e)
-
-# ==========================================
+# =====================================
 # FINAL
-# ==========================================
+# =====================================
 
 cursor.close()
 
 conn.close()
 
-print("\n🎉 IMPORTAÇÃO FINALIZADA")
+print("\n🎯 FINALIZADO")
+print(f"✅ TOTAL ATUALIZADO: {total_updates}")
