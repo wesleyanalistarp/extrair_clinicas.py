@@ -10,9 +10,35 @@
 
     <style>
         body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-        }
+
+    font-family: 'Poppins', sans-serif;
+
+    margin: 0;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(124,58,237,.18),
+            transparent 35%
+        ),
+
+        radial-gradient(
+            circle at bottom right,
+            rgba(59,130,246,.12),
+            transparent 30%
+        ),
+
+        linear-gradient(
+            180deg,
+            #0f172a 0%,
+            #111827 40%,
+            #0f172a 100%
+        );
+
+    min-height: 100vh;
+
+    overflow-x: hidden;
+}
 
         /* HERO */
         .hero {
@@ -22,6 +48,8 @@
                 linear-gradient(135deg,
                     #4f46e5,
                     #7c3aed);
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
         }
 
         .hero h1 {
@@ -47,18 +75,45 @@
             transform: scale(1.05);
         }
 
-        /* FEATURES */
-        .feature {
-            padding: 40px;
-            border-radius: 16px;
-            background: #f8fafc;
-            text-align: center;
-            transition: 0.2s;
-        }
+       /* FEATURES */
+.feature {
 
-        .feature:hover {
-            transform: translateY(-6px);
-        }
+    padding: 40px;
+
+    border-radius: 20px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(17,24,39,.96),
+            rgba(30,41,59,.96)
+        );
+
+    border: 1px solid rgba(255,255,255,.06);
+
+    text-align: center;
+
+    transition: .25s ease;
+
+    color: white;
+
+    box-shadow:
+        0 15px 40px rgba(0,0,0,.18);
+}
+
+.feature p{
+
+    color: rgba(255,255,255,.72);
+}
+
+.feature:hover{
+
+    transform:
+        translateY(-8px);
+
+    box-shadow:
+        0 25px 55px rgba(0,0,0,.25);
+}
 
         /* CTA */
         .cta {
@@ -467,6 +522,301 @@
                 margin-top: 20px;
             }
         }
+/* =========================
+   🎬 DEMOS DO SISTEMA
+========================= */
+
+.demo-section{
+
+    position: relative;
+
+    padding: 100px 20px;
+
+    background: transparent;
+
+    overflow: hidden;
+}
+
+/* GLOW FUNDO */
+.demo-section::before{
+
+    content: "";
+
+    position: absolute;
+
+    width: 550px;
+    height: 550px;
+
+    top: -180px;
+    left: -180px;
+
+    background:
+        radial-gradient(
+            rgba(124,58,237,.22),
+            transparent 70%
+        );
+
+    filter: blur(90px);
+
+    z-index: 0;
+}
+
+/* SEGUNDO GLOW */
+.demo-section::after{
+
+    content: "";
+
+    position: absolute;
+
+    width: 500px;
+    height: 500px;
+
+    bottom: -200px;
+    right: -150px;
+
+    background:
+        radial-gradient(
+            rgba(59,130,246,.14),
+            transparent 70%
+        );
+
+    filter: blur(90px);
+
+    z-index: 0;
+}
+
+/* CONTAINER ACIMA DOS EFEITOS */
+.demo-section .container{
+
+    position: relative;
+
+    z-index: 2;
+}
+
+.demo-title{
+
+    color: white;
+
+    text-align: center;
+
+    margin-bottom: 15px;
+
+    font-size: 38px;
+
+    font-weight: 700;
+}
+
+.demo-sub{
+
+    color: rgba(255,255,255,.75);
+
+    text-align: center;
+
+    max-width: 700px;
+
+    margin: 0 auto 50px auto;
+
+    font-size: 16px;
+}
+
+/* CARD */
+.demo-card{
+
+    position: relative;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(17,24,39,.96),
+            rgba(30,41,59,.96)
+        );
+
+    border: 1px solid rgba(255,255,255,.06);
+
+    border-radius: 24px;
+
+    overflow: hidden;
+
+    transition: .25s ease;
+
+    box-shadow:
+        0 20px 50px rgba(0,0,0,.22);
+}
+
+/* OVERLAY */
+.demo-card::after{
+
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0,0,0,0),
+            rgba(0,0,0,.28)
+        );
+
+    pointer-events: none;
+}
+
+/* HOVER */
+.demo-card:hover{
+
+    transform:
+        translateY(-8px);
+
+    box-shadow:
+        0 25px 55px rgba(0,0,0,.28);
+}
+
+/* VIDEO */
+.demo-video{
+
+    width: 100%;
+
+    aspect-ratio: 16/9;
+
+    object-fit: cover;
+
+    display: block;
+
+    background: #0f172a;
+
+    transition: .3s ease;
+}
+
+/* ZOOM */
+.demo-card:hover .demo-video{
+
+    transform: scale(1.03);
+}
+
+/* PLAY */
+.play-demo{
+
+    position: absolute;
+
+    top: 18px;
+    right: 18px;
+
+    width: 44px;
+    height: 44px;
+
+    border-radius: 50%;
+
+    background: rgba(255,255,255,.12);
+
+    backdrop-filter: blur(10px);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: white;
+
+    font-size: 14px;
+
+    z-index: 10;
+}
+
+/* CONTEUDO */
+.demo-content{
+
+    position: relative;
+
+    z-index: 5;
+
+    padding: 22px;
+}
+
+/* TOP TAG */
+.demo-top{
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    background: rgba(255,255,255,.08);
+
+    border: 1px solid rgba(255,255,255,.06);
+
+    color: white;
+
+    padding: 8px 14px;
+
+    border-radius: 999px;
+
+    font-size: 13px;
+
+    margin-bottom: 14px;
+
+    font-weight: 500;
+}
+
+
+/* MOBILE */
+@media(max-width:768px){
+
+    .demo-title{
+
+        font-size: 30px;
+    }
+
+    .demo-sub{
+
+        font-size: 15px;
+    }
+}
+
+
+.demo-content h4{
+
+    color: white;
+
+    font-size: 22px;
+
+    margin-bottom: 10px;
+
+    font-weight: 600;
+}
+
+.demo-content p{
+
+    color: rgba(255,255,255,.75);
+
+    margin-bottom: 0;
+
+    font-size: 15px;
+
+    line-height: 1.6;
+}
+.feature-section-glow{
+
+    position: absolute;
+
+    width: 500px;
+    height: 500px;
+
+    background:
+        radial-gradient(
+            rgba(124,58,237,.15),
+            transparent 70%
+        );
+
+    top: -150px;
+    right: -150px;
+
+    filter: blur(90px);
+
+    z-index: 0;
+}
+
     </style>
 </head>
 
@@ -548,50 +898,249 @@
         </div>
     </section>
 
-    <!-- FEATURES -->
-    <section class="py-5">
-        <div class="container text-center">
+    <!-- =========================
+     🎬 DEMONSTRAÇÃO SISTEMA
+========================= -->
 
-            <div class="support-minimal text-center mt-5 mb-5">
+<section class="demo-section">
 
-                <p class="support-text">
-                    💬 Precisa de ajuda? Fale com nosso suporte para dúvidas, financeiro ou melhorias.
-                </p>
+    <div class="container">
 
-                <a href="https://wa.me/5577991162642?text=Olá,%20vim%20pelo%20CallVendas%20e%20preciso%20de%20ajuda%20(comercial/financeiro/suporte)."
-                    target="_blank" class="btn-whatsapp">
-                    WhatsApp
-                </a>
+        <div class="text-center mb-5">
+
+            <h2 class="demo-title">
+                Veja o sistema funcionando
+            </h2>
+
+            <p class="demo-sub">
+                Busque empresas, exporte contatos e acelere sua prospecção em segundos.
+            </p>
+
+        </div>
+
+        <div class="row g-4">
+
+            <!-- CARD 1 -->
+            <div class="col-lg-4 col-md-6">
+
+                <div class="demo-card">
+
+                    <video
+                        class="demo-video"
+                        autoplay
+                        muted
+                        loop
+                        playsinline>
+
+                        <source
+                            src="{{ url_for('static', filename='videos/dasboard.mp4') }}"
+                            type="video/mp4">
+
+                    </video>
+
+                    <div class="play-demo">
+                        ▶
+                    </div>
+
+                    <div class="demo-content">
+
+                        <div class="demo-top">
+                            📊 Dashboard
+                        </div>
+
+                        <h4>
+                            Controle total dos leads
+                        </h4>
+
+                        <p>
+                            Visualize métricas, produtividade,
+                            conversões e crescimento da base.
+                        </p>
+
+                    </div>
+
+                </div>
 
             </div>
-            <h2 class="mb-4">Por que usar o CallVendas?</h2>
-            <div class="row">
 
-                <div class="col-md-4">
-                    <div class="feature">
-                        <h4>📊 Base Gigante</h4>
-                        <p>Milhões de empresas atualizadas direto da Receita Federal.</p>
+            <!-- CARD 2 -->
+            <div class="col-lg-4 col-md-6">
+
+                <div class="demo-card">
+
+                    <video
+                        class="demo-video"
+                        autoplay
+                        muted
+                        loop
+                        playsinline>
+
+                        <source
+                            src="{{ url_for('static', filename='videos/home.mp4') }}"
+                            type="video/mp4">
+
+                    </video>
+
+                    <div class="play-demo">
+                        ▶
                     </div>
+
+                    <div class="demo-content">
+
+                        <div class="demo-top">
+                            🔍 Busca Inteligente
+                        </div>
+
+                        <h4>
+                            Filtre empresas rapidamente
+                        </h4>
+
+                        <p>
+                            Busque empresas por cidade,
+                            segmento, data e localização.
+                        </p>
+
+                    </div>
+
                 </div>
 
-                <div class="col-md-4">
-                    <div class="feature">
-                        <h4>⚡ Filtros Inteligentes</h4>
-                        <p>Busque por cidade, UF, palavra-chave e data.</p>
-                    </div>
-                </div>
+            </div>
 
-                <div class="col-md-4">
-                    <div class="feature">
-                        <h4>📞 Contato Direto</h4>
-                        <p>Telefone e email prontos para prospecção.</p>
+            <!-- CARD 3 -->
+            <div class="col-lg-4 col-md-6">
+
+                <div class="demo-card">
+
+                    <video
+                        class="demo-video"
+                        autoplay
+                        muted
+                        loop
+                        playsinline>
+
+                        <source
+                            src="{{ url_for('static', filename='videos/leads.mp4') }}"
+                            type="video/mp4">
+
+                    </video>
+
+                    <div class="play-demo">
+                        ▶
                     </div>
+
+                    <div class="demo-content">
+
+                        <div class="demo-top">
+                            📞 Prospecção
+                        </div>
+
+                        <h4>
+                            Contato direto com leads
+                        </h4>
+
+                        <p>
+                            Abra WhatsApp, organize contatos
+                            e exporte listas completas.
+                        </p>
+
+                    </div>
+
                 </div>
 
             </div>
 
         </div>
-    </section>
+
+    </div>
+
+</section>
+
+    <!-- FEATURES -->
+    <!-- FEATURES -->
+<section class="py-5 position-relative">
+
+    <!-- GLOW -->
+    <div class="feature-section-glow"></div>
+
+    <div class="container text-center position-relative" style="z-index:2;">
+
+        <!-- SUPORTE -->
+        <div class="support-minimal text-center mt-5 mb-5">
+
+            <p class="support-text">
+                💬 Precisa de ajuda? Fale com nosso suporte para dúvidas, financeiro ou melhorias.
+            </p>
+
+            <a href="https://wa.me/5577991162642?text=Olá,%20vim%20pelo%20CallVendas%20e%20preciso%20de%20ajuda%20(comercial/financeiro/suporte)."
+                target="_blank"
+                class="btn-whatsapp">
+
+                WhatsApp
+
+            </a>
+
+        </div>
+
+        <!-- TITULO -->
+        <h2 class="mb-5 text-white fw-bold">
+            Por que usar o CallVendas?
+        </h2>
+
+        <div class="row g-4">
+
+            <!-- CARD -->
+            <div class="col-md-4">
+
+                <div class="feature">
+
+                    <h4>📊 Base Gigante</h4>
+
+                    <p>
+                        Milhões de empresas atualizadas
+                        direto da Receita Federal.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <!-- CARD -->
+            <div class="col-md-4">
+
+                <div class="feature">
+
+                    <h4>⚡ Filtros Inteligentes</h4>
+
+                    <p>
+                        Busque por cidade, UF,
+                        palavra-chave e data.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <!-- CARD -->
+            <div class="col-md-4">
+
+                <div class="feature">
+
+                    <h4>📞 Contato Direto</h4>
+
+                    <p>
+                        Telefone e email prontos
+                        para prospecção.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
 
     <!-- CTA FINAL -->
     <section class="cta">
