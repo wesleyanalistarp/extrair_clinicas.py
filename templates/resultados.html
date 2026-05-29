@@ -102,7 +102,8 @@
                             <a href="#" onclick="abrirWhatsapp(
                                 '{{ item.telefone }}',
                                 '{{ item.nome }}'
-                            )" class="btn btn-success btn-sm d-flex align-items-center justify-content-center" title="WhatsApp">
+                            )" class="btn btn-success btn-sm d-flex align-items-center justify-content-center"
+                                title="WhatsApp">
                                 <i class="bi bi-whatsapp"></i>
                             </a>
                             <button onclick="marcar('{{ item.cnpj }}','ligado')"
@@ -353,16 +354,24 @@
 
                 </div>
 
-                <div class="mb-2">
+               <div class="mb-3">
 
-                    ${data.bairro || '-'}
+                    <a
+                        href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                                    `${data.logradouro || ''} ${data.numero || ''}, ${data.bairro || ''}, ${data.municipio || ''} - ${data.uf || ''}`
+                                )
+                                }"
+                        target="_blank"
+                        class="btn btn-outline-primary"
+                    >
+                        📍 Traçar Rota
+                    </a>
 
                 </div>
 
+
                 <div>
-
                     ${data.municipio || '-'} - ${data.uf || '-'}
-
                 </div>
 
                 <small class="text-muted">
@@ -505,47 +514,47 @@
         document.getElementById("empresaModalCustom")
             .style.display = "none";
     }
-    function abrirWhatsapp(telefone, empresa){
+    function abrirWhatsapp(telefone, empresa) {
 
-    // limpa telefone
-    telefone = telefone
-        .replace(/\(/g, '')
-        .replace(/\)/g, '')
-        .replace(/\-/g, '')
-        .replace(/\s/g, '');
+        // limpa telefone
+        telefone = telefone
+            .replace(/\(/g, '')
+            .replace(/\)/g, '')
+            .replace(/\-/g, '')
+            .replace(/\s/g, '');
 
-    // hora atual
-    const hora = new Date().getHours();
+        // hora atual
+        const hora = new Date().getHours();
 
-    let saudacao = "Olá";
+        let saudacao = "Olá";
 
-    if(hora >= 5 && hora < 12){
+        if (hora >= 5 && hora < 12) {
 
-        saudacao = "Bom dia";
+            saudacao = "Bom dia";
 
-    } else if(hora >= 12 && hora < 18){
+        } else if (hora >= 12 && hora < 18) {
 
-        saudacao = "Boa tarde";
+            saudacao = "Boa tarde";
 
-    } else {
+        } else {
 
-        saudacao = "Boa noite";
+            saudacao = "Boa noite";
+        }
+
+        // mensagem
+        const mensagem = `${saudacao} ${empresa}, tudo bem?`;
+
+        // encode
+        const mensagemFinal = encodeURIComponent(mensagem);
+
+        // abre whatsapp
+        window.open(
+
+            `https://wa.me/55${telefone}?text=${mensagemFinal}`,
+
+            '_blank'
+        );
     }
-
-    // mensagem
-    const mensagem = `${saudacao} ${empresa}, tudo bem?`;
-
-    // encode
-    const mensagemFinal = encodeURIComponent(mensagem);
-
-    // abre whatsapp
-    window.open(
-
-        `https://wa.me/55${telefone}?text=${mensagemFinal}`,
-
-        '_blank'
-    );
-}
 
 
 
