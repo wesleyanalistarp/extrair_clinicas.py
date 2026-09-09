@@ -1,11 +1,18 @@
+import os
 import psycopg2
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # =====================================================
 # CONEXÃO
 # =====================================================
 
-DATABASE_URL = "postgresql://neondb_owner:npg_KR5TGagzE1mZ@ep-steep-dust-am57tgsu-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL não definida. Configure o .env")
 
 conn = psycopg2.connect(DATABASE_URL)
 

@@ -11,6 +11,11 @@ resultado.csv
 __pycache__/
 *.pyc
 
+# ambiente virtual (não subir - milhares de arquivos, some entre máquinas)
+venv/
+.venv/
+env/
+
 # env
 .env
 

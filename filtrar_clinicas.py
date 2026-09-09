@@ -1,5 +1,9 @@
+import os
 import psycopg2
 import sqlite3
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # =========================
 # CONFIG
@@ -7,7 +11,10 @@ import sqlite3
 
 SQLITE_DB = "empresas.db"
 
-POSTGRES_URL = "postgresql://neondb_owner:npg_KR5TGagzE1mZ@ep-steep-dust-am57tgsu.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require"
+POSTGRES_URL = os.getenv("DATABASE_URL")
+
+if not POSTGRES_URL:
+    raise ValueError("❌ DATABASE_URL não definida. Configure o .env")
 
 BATCH_SIZE = 10000
 

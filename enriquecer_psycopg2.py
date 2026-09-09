@@ -2,6 +2,14 @@ import os
 import csv
 import psycopg2
 from psycopg2 import OperationalError, InterfaceError
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL não definida. Configure o .env")
 
 # ======================================================
 # CONEXÃO
@@ -9,13 +17,7 @@ from psycopg2 import OperationalError, InterfaceError
 
 def conectar():
 
-    conn = psycopg2.connect(
-        host="ep-steep-dust-am57tgsu.c-5.us-east-1.aws.neon.tech",
-        dbname="neondb",
-        user="neondb_owner",
-        password="npg_KR5TGagzE1mZ",
-        sslmode="require"
-    )
+    conn = psycopg2.connect(DATABASE_URL)
 
     conn.autocommit = False
 
