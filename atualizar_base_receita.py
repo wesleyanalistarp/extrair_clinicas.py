@@ -6,6 +6,10 @@ Baixa a versao MAIS RECENTE dos "Dados Abertos do CNPJ" da Receita Federal
 mesmo formato de pastas que os outros scripts deste projeto ja esperam
 (Empresa0..Empresa9, Estabelecimentos0..Estabelecimentos9).
 
+A Receita distribui esses arquivos hoje por um compartilhamento estilo
+Nextcloud (WebDAV com token público), não mais por uma pasta HTML comum -
+por isso o acesso é via PROPFIND/WebDAV em vez de um índice de diretório.
+
 ⚠️ AVISO DE TAMANHO / TEMPO
 O conjunto completo (Empresas + Estabelecimentos, 10 partes cada) soma
 dezenas de GB depois de descompactado (o Estabelecimentos sozinho passa de
@@ -19,6 +23,7 @@ Uso:
     python atualizar_base_receita.py --so-empresas   # baixa só Empresas
     python atualizar_base_receita.py --mes 2026-08   # força um mês específico em vez do mais recente
     python atualizar_base_receita.py --municipios    # também atualiza o F.K03200$Z...MUNICCSV
+    python atualizar_base_receita.py --listar        # só lista os meses/arquivos disponíveis e sai
 
 Requer: requests  (pip install requests)
 """
@@ -28,51 +33,87 @@ import re
 import sys
 import argparse
 import zipfile
-import shutil
 import time
-from urllib.parse import urljoin
+from xml.etree import ElementTree
 
 import requests
 
-BASE_URL = "https://arquivos.receitafederal.gov.br/dados/cnpj/dados_abertos_cnpj/"
-PASTA_DESTINO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dados_receita")
+# Compartilhamento público oficial da Receita Federal para os dados abertos do CNPJ.
+# (mesmo mecanismo usado por projetos de referência como rictom/cnpj-sqlite)
+SHARE_TOKEN = "YggdBLfdninEJX9"
+WEBDAV_BASE = "https://arquivos.receitafederal.gov.br/public.php/webdav"
+DAV_FILES_BASE = f"https://arquivos.receitafederal.gov.br/public.php/dav/files/{SHARE_TOKEN}"
 
+DAV_NS = {"d": "DAV:"}
+
+AUTH = (SHARE_TOKEN, "")
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; atualizador-leads/1.0)"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "*/*",
 }
 
+PASTA_DESTINO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dados_receita")
 
-def listar_links(url):
-    """Retorna a lista de hrefs encontrados numa página de listagem (Apache-style index)."""
-    resp = requests.get(url, headers=HEADERS, timeout=60)
-    resp.raise_for_status()
-    return re.findall(r'href="([^"]+)"', resp.text)
+
+def propfind(url, tentativas=3):
+    for tentativa in range(1, tentativas + 1):
+        try:
+            resp = requests.request(
+                "PROPFIND", url, auth=AUTH, headers={**HEADERS, "Depth": "1"}, timeout=60
+            )
+            resp.raise_for_status()
+            return ElementTree.fromstring(resp.content)
+        except (requests.RequestException, ElementTree.ParseError) as e:
+            print(f"   ⚠️ Falha no PROPFIND (tentativa {tentativa}/{tentativas}): {e}")
+            time.sleep(3)
+    raise RuntimeError(f"Não consegui consultar {url} depois de {tentativas} tentativas")
+
+
+def listar_hrefs(url):
+    root = propfind(url)
+    hrefs = []
+    for resp in root.findall("d:response", DAV_NS):
+        href_el = resp.find("d:href", DAV_NS)
+        if href_el is not None and href_el.text:
+            hrefs.append(href_el.text)
+    return hrefs
 
 
 def descobrir_mes_mais_recente():
-    print(f"🔎 Consultando índice: {BASE_URL}")
-    links = listar_links(BASE_URL)
+    print(f"🔎 Consultando o compartilhamento da Receita Federal (WebDAV)...")
+    hrefs = listar_hrefs(WEBDAV_BASE + "/")
 
-    meses = sorted(
-        {l.strip("/") for l in links if re.fullmatch(r"\d{4}-\d{2}/?", l)}
-    )
+    meses = set()
+    for h in hrefs:
+        m = re.search(r"(\d{4}-\d{2})/?$", h)
+        if m:
+            meses.add(m.group(1))
 
     if not meses:
         raise RuntimeError(
-            "Não consegui identificar pastas de mês (formato AAAA-MM) no índice. "
-            "O layout do site pode ter mudado — acesse "
-            f"{BASE_URL} manualmente para conferir."
+            "Não consegui identificar pastas de mês (formato AAAA-MM) na resposta do WebDAV. "
+            "O mecanismo de acesso pode ter mudado de novo - avisa que eu ajusto o script."
         )
 
-    mais_recente = meses[-1]
+    mais_recente = sorted(meses)[-1]
     print(f"📅 Mês mais recente disponível: {mais_recente}")
     return mais_recente
+
+
+def listar_arquivos_do_mes(mes):
+    hrefs = listar_hrefs(f"{WEBDAV_BASE}/{mes}/")
+    arquivos = []
+    for h in hrefs:
+        m = re.search(r"/([^/]+\.zip)$", h, re.IGNORECASE)
+        if m:
+            arquivos.append(m.group(1))
+    return sorted(set(arquivos))
 
 
 def baixar_arquivo(url, destino_zip, tentativas=3):
     for tentativa in range(1, tentativas + 1):
         try:
-            with requests.get(url, headers=HEADERS, stream=True, timeout=120) as r:
+            with requests.get(url, auth=AUTH, headers=HEADERS, stream=True, timeout=120) as r:
                 r.raise_for_status()
                 total = int(r.headers.get("content-length", 0))
                 baixado = 0
@@ -87,11 +128,10 @@ def baixar_arquivo(url, destino_zip, tentativas=3):
 
                         if time.time() - ultimo_print > 5:
                             pct = (baixado / total * 100) if total else 0
-                            print(
-                                f"   ⬇️  {baixado / (1024**2):,.0f} MB "
-                                f"({pct:.1f}%)" if total else
-                                f"   ⬇️  {baixado / (1024**2):,.0f} MB"
-                            )
+                            msg = f"   ⬇️  {baixado / (1024**2):,.0f} MB"
+                            if total:
+                                msg += f" ({pct:.1f}%)"
+                            print(msg)
                             ultimo_print = time.time()
             return True
 
@@ -104,10 +144,8 @@ def baixar_arquivo(url, destino_zip, tentativas=3):
     return False
 
 
-def baixar_e_extrair(tipo, indice, mes, pasta_local_nome):
-    """tipo: 'Empresas' ou 'Estabelecimentos'; indice: 0-9"""
-    nome_zip_remoto = f"{tipo}{indice}.zip"
-    url = urljoin(f"{BASE_URL}{mes}/", nome_zip_remoto)
+def baixar_e_extrair(nome_zip_remoto, mes, pasta_local_nome):
+    url = f"{DAV_FILES_BASE}/{mes}/{nome_zip_remoto}"
 
     pasta_local = os.path.join(PASTA_DESTINO, pasta_local_nome)
     os.makedirs(pasta_local, exist_ok=True)
@@ -115,7 +153,6 @@ def baixar_e_extrair(tipo, indice, mes, pasta_local_nome):
     zip_local = os.path.join(pasta_local, nome_zip_remoto)
 
     print(f"\n📦 {nome_zip_remoto}")
-    print(f"   URL: {url}")
 
     if not baixar_arquivo(url, zip_local):
         print(f"   ❌ Não foi possível baixar {nome_zip_remoto} — pulando.")
@@ -123,7 +160,6 @@ def baixar_e_extrair(tipo, indice, mes, pasta_local_nome):
 
     print("   📂 Extraindo...")
     try:
-        # limpa CSVs antigos dessa pasta antes de extrair os novos
         for antigo in os.listdir(pasta_local):
             if antigo != nome_zip_remoto:
                 os.remove(os.path.join(pasta_local, antigo))
@@ -141,13 +177,19 @@ def baixar_e_extrair(tipo, indice, mes, pasta_local_nome):
     return True
 
 
-def atualizar_municipios(mes):
+def atualizar_municipios(mes, arquivos_do_mes):
+    candidatos = [a for a in arquivos_do_mes if a.lower().startswith("municipios")]
+    if not candidatos:
+        print("   ⚠️ Não achei um arquivo de Municípios nesse mês — pulando.")
+        return
+
     print("\n📍 Atualizando tabela de municípios...")
-    url = urljoin(f"{BASE_URL}{mes}/", "Municipios.zip")
+    nome_zip = candidatos[0]
+    url = f"{DAV_FILES_BASE}/{mes}/{nome_zip}"
     tmp_zip = os.path.join(PASTA_DESTINO, "_municipios_tmp.zip")
 
     if not baixar_arquivo(url, tmp_zip):
-        print("   ❌ Não foi possível baixar Municipios.zip")
+        print("   ❌ Não foi possível baixar o arquivo de municípios")
         return
 
     destino = os.path.dirname(PASTA_DESTINO)  # raiz do projeto, onde app.py espera o arquivo
@@ -164,11 +206,29 @@ def main():
     parser.add_argument("--so-empresas", action="store_true", help="Baixa somente os arquivos de Empresas")
     parser.add_argument("--so-estabelecimentos", action="store_true", help="Baixa somente os arquivos de Estabelecimentos")
     parser.add_argument("--municipios", action="store_true", help="Também atualiza o arquivo de municípios")
+    parser.add_argument("--listar", action="store_true", help="Só lista os meses/arquivos disponíveis e sai, sem baixar nada")
     args = parser.parse_args()
 
     os.makedirs(PASTA_DESTINO, exist_ok=True)
 
     mes = args.mes or descobrir_mes_mais_recente()
+
+    print(f"\n📁 Listando arquivos disponíveis em {mes}...")
+    arquivos_do_mes = listar_arquivos_do_mes(mes)
+
+    if not arquivos_do_mes:
+        print("❌ Não encontrei nenhum .zip nesse mês. Confere se o mês está certo (--mes AAAA-MM).")
+        sys.exit(1)
+
+    print(f"   {len(arquivos_do_mes)} arquivos encontrados:")
+    for a in arquivos_do_mes:
+        print(f"   - {a}")
+
+    if args.listar:
+        return
+
+    empresas_zips = sorted([a for a in arquivos_do_mes if re.match(r"(?i)empresas?\d\.zip$", a)])
+    estab_zips = sorted([a for a in arquivos_do_mes if re.match(r"(?i)estabelecimentos?\d\.zip$", a)])
 
     baixar_empresas = not args.so_estabelecimentos
     baixar_estabelecimentos = not args.so_empresas
@@ -177,20 +237,24 @@ def main():
 
     if baixar_empresas:
         print("\n=== EMPRESAS ===")
-        for i in range(10):
-            ok = baixar_e_extrair("Empresas", i, mes, f"Empresa{i}")
+        for nome_zip in empresas_zips:
+            m = re.search(r"(\d)\.zip$", nome_zip, re.IGNORECASE)
+            i = m.group(1) if m else "0"
+            ok = baixar_e_extrair(nome_zip, mes, f"Empresa{i}")
             if not ok:
-                falhas.append(f"Empresas{i}")
+                falhas.append(nome_zip)
 
     if baixar_estabelecimentos:
         print("\n=== ESTABELECIMENTOS ===")
-        for i in range(10):
-            ok = baixar_e_extrair("Estabelecimentos", i, mes, f"Estabelecimentos{i}")
+        for nome_zip in estab_zips:
+            m = re.search(r"(\d)\.zip$", nome_zip, re.IGNORECASE)
+            i = m.group(1) if m else "0"
+            ok = baixar_e_extrair(nome_zip, mes, f"Estabelecimentos{i}")
             if not ok:
-                falhas.append(f"Estabelecimentos{i}")
+                falhas.append(nome_zip)
 
     if args.municipios:
-        atualizar_municipios(mes)
+        atualizar_municipios(mes, arquivos_do_mes)
 
     print("\n" + "=" * 60)
     if falhas:
@@ -198,9 +262,7 @@ def main():
         print("   Rode o script de novo depois — ele só baixa de novo o que faltou.")
     else:
         print(f"🎉 Base atualizada com sucesso para o mês de referência {mes}!")
-    print("Próximo passo: rode os scripts de importação "
-          "(importar_empresas_receita.py, enriquecer_psycopg2.py, gerar_score_leads.py) "
-          "para levar os dados novos para o Postgres.")
+    print("Próximo passo: rode os scripts de importação para levar os dados novos para o Postgres.")
 
 
 if __name__ == "__main__":

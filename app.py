@@ -604,18 +604,26 @@ def buscar_empresas(cidade, uf, palavra, data_min, status):
     except:
         pass
 
+    # nome vem de empresas_detalhes (nome_fantasia, senão razao_social) com
+    # fallback pro empresas.nome antigo — sem isso, toda empresa nova
+    # aparece "Sem nome" até alguém rodar um backfill manual de novo,
+    # porque o enriquecimento só atualiza empresas_detalhes, nunca
+    # empresas.nome.
     query = """
-    SELECT 
-        cnpj,
-        nome,
-        uf,
-        municipio,
-        data_inicio,
-        telefone,
-        telefone2,
-        status,
-        observacao
-    FROM empresas
+    SELECT * FROM (
+        SELECT
+            e.cnpj,
+            COALESCE(NULLIF(d.nome_fantasia, ''), NULLIF(d.razao_social, ''), NULLIF(e.nome, '')) AS nome,
+            e.uf,
+            e.municipio,
+            e.data_inicio,
+            e.telefone,
+            e.telefone2,
+            e.status,
+            e.observacao
+        FROM empresas e
+        LEFT JOIN empresas_detalhes d ON d.cnpj = e.cnpj
+    ) sub
     WHERE 1=1
     """
 

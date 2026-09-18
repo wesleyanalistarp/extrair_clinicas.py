@@ -28,6 +28,22 @@ conn = conectar()
 cursor = conn.cursor()
 
 # ======================================================
+# CORRIGE LINHAS ANTIGAS SEM cnpj_base
+# (sem isso, o importar_empresas_receita.py nunca acha essas
+# linhas pra preencher razao_social/natureza/porte/capital,
+# e a empresa fica pra sempre "sem nome" no site)
+# ======================================================
+
+cursor.execute("""
+    UPDATE empresas_detalhes
+    SET cnpj_base = LEFT(cnpj, 8)
+    WHERE cnpj_base IS NULL AND cnpj IS NOT NULL
+""")
+if cursor.rowcount:
+    print(f"🔧 Corrigido cnpj_base em {cursor.rowcount} linhas antigas")
+conn.commit()
+
+# ======================================================
 # BUSCAR CNPJS
 # ======================================================
 
@@ -147,6 +163,7 @@ for pasta in os.listdir(PASTA):
                         INSERT INTO empresas_detalhes (
 
                             cnpj,
+                            cnpj_base,
                             razao_social,
                             nome_fantasia,
 
@@ -173,6 +190,7 @@ for pasta in os.listdir(PASTA):
 
                         VALUES (
 
+                            %s,
                             %s,
                             %s,
                             %s,
@@ -204,6 +222,7 @@ for pasta in os.listdir(PASTA):
                     """, (
 
                         cnpj,
+                        cnpj[:8],
                         "",
                         linha[4].strip(),
 
