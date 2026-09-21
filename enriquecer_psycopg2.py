@@ -44,6 +44,25 @@ if cursor.rowcount:
 conn.commit()
 
 # ======================================================
+# CORRIGE LINHAS ANTIGAS SEM data_inicio_atividade
+# (esse campo nunca era gravado aqui, então o "tempo de
+# empresa" no modal do site sempre aparecia "-"; a empresas
+# já tem essa data certa em empresas.data_inicio)
+# ======================================================
+
+cursor.execute("""
+    UPDATE empresas_detalhes d
+    SET data_inicio_atividade = TO_DATE(e.data_inicio, 'YYYYMMDD')
+    FROM empresas e
+    WHERE d.cnpj = e.cnpj
+      AND d.data_inicio_atividade IS NULL
+      AND e.data_inicio ~ '^\\d{8}$'
+""")
+if cursor.rowcount:
+    print(f"🔧 Corrigido data_inicio_atividade em {cursor.rowcount} linhas antigas")
+conn.commit()
+
+# ======================================================
 # BUSCAR CNPJS
 # ======================================================
 
@@ -148,6 +167,22 @@ for pasta in os.listdir(PASTA):
                             f"{data_raw[6:]}"
                         )
 
+                    data_inicio_raw = linha[10].strip()
+
+                    data_inicio_atividade = None
+
+                    if (
+                        data_inicio_raw
+                        and data_inicio_raw != "0"
+                        and len(data_inicio_raw) == 8
+                    ):
+
+                        data_inicio_atividade = (
+                            f"{data_inicio_raw[:4]}-"
+                            f"{data_inicio_raw[4:6]}-"
+                            f"{data_inicio_raw[6:]}"
+                        )
+
                     logradouro = (
                         f"{linha[13].strip()} "
                         f"{linha[14].strip()}"
@@ -184,7 +219,8 @@ for pasta in os.listdir(PASTA):
                             situacao_cadastral,
                             data_situacao,
 
-                            matriz_filial
+                            matriz_filial,
+                            data_inicio_atividade
 
                         )
 
@@ -212,6 +248,7 @@ for pasta in os.listdir(PASTA):
                             %s,
                             %s,
 
+                            %s,
                             %s
 
                         )
@@ -243,7 +280,8 @@ for pasta in os.listdir(PASTA):
                         linha[5].strip(),
                         data_situacao,
 
-                        linha[1].strip()
+                        linha[1].strip(),
+                        data_inicio_atividade
 
                     ))
 
