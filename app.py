@@ -759,12 +759,24 @@ def home():
 @app.route("/buscar", methods=["GET", "POST"])
 @login_required
 def index():
-    if request.method == "POST":
-        cidade = request.form.get("cidade")
-        uf = request.form.get("uf")
-        palavra = request.form.get("palavra")
-        data = request.form.get("data")
-        status = request.form.get("status")
+    # GET com ?status=... é o atalho da sidebar (ex: "Pendentes") — pula
+    # a tela de busca por cidade/UF e já mostra a lista filtrada direto,
+    # igual ao que os botões de filtro da própria resultados.html fazem.
+    status_atalho = request.args.get("status") if request.method == "GET" else None
+
+    if request.method == "POST" or status_atalho:
+        if request.method == "POST":
+            cidade = request.form.get("cidade")
+            uf = request.form.get("uf")
+            palavra = request.form.get("palavra")
+            data = request.form.get("data")
+            status = request.form.get("status")
+        else:
+            cidade = None
+            uf = None
+            palavra = None
+            data = None
+            status = status_atalho
 
         dados = buscar_empresas(cidade, uf, palavra, data, status)
 

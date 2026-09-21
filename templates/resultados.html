@@ -41,6 +41,10 @@
             Fechados
         </button>
 
+        <button onclick="filtrarStatus('concluido')" class="btn btn-outline-info btn-sm">
+            Concluídos
+        </button>
+
     </div>
 
     {% if not dados %}
@@ -91,6 +95,8 @@
                         <span class="badge bg-danger">Não atendeu</span>
                         {% elif item.status == 'pendente' %}
                         <span class="badge bg-warning text-dark">Pendente</span>
+                        {% elif item.status == 'concluido' %}
+                        <span class="badge bg-info text-dark">Concluído</span>
                         {% else %}
                         <span class="badge bg-secondary">Novo</span>
                         {% endif %}
@@ -121,6 +127,14 @@
                             <button onclick="abrirEmpresa('{{ item.cnpj }}')" class="btn btn-dark btn-sm">
                                 👁️
                             </button>
+
+                            {% if item.status == 'pendente' %}
+                            <label class="btn btn-sm btn-outline-info d-flex align-items-center justify-content-center gap-1"
+                                style="grid-column: span 2;" title="Marca como concluído e some da lista de Pendentes">
+                                <input type="checkbox" onclick="marcar('{{ item.cnpj }}','concluido')" style="margin:0;">
+                                Atendimento concluído
+                            </label>
+                            {% endif %}
 
                             {% if item.observacao %}
                             <button onclick="verObs('{{ item.observacao }}')" class="btn btn-sm btn-dark"
